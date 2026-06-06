@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import com.jobalert.ui.theme.JobAlertTheme
+import com.jobalert.ui.theme.LocalAlertColor
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -78,7 +80,7 @@ class OverlayManager(
             setViewTreeViewModelStoreOwner(owner)
             setViewTreeSavedStateRegistryOwner(owner)
             setContent {
-                MaterialTheme {
+                JobAlertTheme(darkTheme = settingsRepository.darkMode) {
                     AlertOverlayContent(data = data, onAcknowledge = { dismiss() })
                 }
             }
@@ -138,7 +140,7 @@ fun AlertOverlayContent(data: NotificationData, onAcknowledge: () -> Unit) {
     }
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFB71C1C)
+        color = LocalAlertColor.current
     ) {
         Column(
             modifier = Modifier
@@ -202,7 +204,7 @@ fun AlertOverlayContent(data: NotificationData, onAcknowledge: () -> Unit) {
                 Text(
                     text = "ATENDIDO",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color(0xFFB71C1C)
+                    color = LocalAlertColor.current
                 )
             }
         }

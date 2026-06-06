@@ -22,6 +22,9 @@ private val DarkColors = darkColorScheme()
 /** Provides a success/positive color that adapts to the current theme brightness. */
 val LocalSuccessColor = staticCompositionLocalOf { Color(0xFF2E7D32) }
 
+/** Provides a muted alert/warning color for unacknowledged states. Darker than colorScheme.error. */
+val LocalAlertColor = staticCompositionLocalOf { Color(0xFF8C1D18) }
+
 @Composable
 fun JobAlertTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     val context = LocalContext.current
@@ -41,8 +44,12 @@ fun JobAlertTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     }
 
     val successColor = if (darkTheme) Color(0xFF81C784) else Color(0xFF2E7D32)
+    val alertColor = if (darkTheme) Color(0xFFCF6679) else Color(0xFF8C1D18)
 
-    CompositionLocalProvider(LocalSuccessColor provides successColor) {
+    CompositionLocalProvider(
+        LocalSuccessColor provides successColor,
+        LocalAlertColor provides alertColor,
+    ) {
         MaterialTheme(colorScheme = colorScheme, content = content)
     }
 }
