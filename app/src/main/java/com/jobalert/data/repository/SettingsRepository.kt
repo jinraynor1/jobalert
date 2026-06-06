@@ -59,6 +59,10 @@ class SettingsRepository(context: Context) {
         get() = prefs.getBoolean("dark_mode", false)
         set(value) { prefs.edit().putBoolean("dark_mode", value).apply() }
 
+    var alarmSoundUri: String?
+        get() = prefs.getString("alarm_sound_uri", null)
+        set(value) { prefs.edit().putString("alarm_sound_uri", value).apply() }
+
     val isWithinMinInterval: Boolean
         get() {
             val intervalMs = minIntervalMinutes * 60_000L

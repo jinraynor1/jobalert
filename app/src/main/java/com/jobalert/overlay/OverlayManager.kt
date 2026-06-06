@@ -3,6 +3,7 @@ package com.jobalert.overlay
 import android.content.Context
 import android.graphics.PixelFormat
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -111,8 +112,11 @@ class OverlayManager(
     }
 
     private fun playSound() {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val saved = settingsRepository.alarmSoundUri
+        val uri = saved?.let { runCatching { Uri.parse(it) }.getOrNull() }
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
         ringtone = RingtoneManager.getRingtone(context, uri)
+            ?: RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
         ringtone?.play()
     }
 

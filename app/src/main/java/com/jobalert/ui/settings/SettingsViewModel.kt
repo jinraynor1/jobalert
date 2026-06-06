@@ -75,6 +75,14 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         app.setDarkMode(enabled)
     }
 
+    private val _alarmSoundUri = MutableStateFlow(repository.alarmSoundUri)
+    val alarmSoundUri: StateFlow<String?> = _alarmSoundUri.asStateFlow()
+
+    fun setAlarmSoundUri(uri: String?) {
+        repository.alarmSoundUri = uri
+        _alarmSoundUri.value = uri
+    }
+
     private val _muteUntil = MutableStateFlow(repository.muteUntil)
     val muteUntil: StateFlow<Long> = _muteUntil.asStateFlow()
 

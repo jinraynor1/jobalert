@@ -1,5 +1,11 @@
 package com.jobalert.ui.settings
 
+import android.app.Activity
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,6 +56,7 @@ fun SettingsScreen() {
 
     val darkMode by viewModel.darkMode.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
+    val alarmSoundUri by viewModel.alarmSoundUri.collectAsState()
     val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
     val quietHoursEnabled by viewModel.quietHoursEnabled.collectAsState()
     val quietHoursStartHour by viewModel.quietHoursStartHour.collectAsState()
@@ -57,6 +64,24 @@ fun SettingsScreen() {
     val minIntervalMinutes by viewModel.minIntervalMinutes.collectAsState()
     val muteUntil by viewModel.muteUntil.collectAsState()
     val imapPollIntervalMinutes by viewModel.imapPollIntervalMinutes.collectAsState()
+
+    val ringtonePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            viewModel.setAlarmSoundUri(uri?.toString())
+        }
+    }
+
+    val soundTitle = remember(alarmSoundUri) {
+        val s = alarmSoundUri
+        if (s == null) "Predeterminado del sistema"
+        else runCatching {
+            RingtoneManager.getRingtone(context, Uri.parse(s))?.getTitle(context)
+        }.getOrNull() ?: "Predeterminado del sistema"
+    }
 
     Column(
         modifier = Modifier
@@ -155,6 +180,30 @@ fun SettingsScreen() {
             checked = soundEnabled,
             onCheckedChange = { viewModel.setSoundEnabled(it) }
         )
+
+        if (soundEnabled) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Sonido de la alarma")
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                        putExtra(
+                            RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                            alarmSoundUri?.let { Uri.parse(it) }
+                        )
+                    }
+                    ringtonePicker.launch(intent)
+                }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Tono de la alarma", style = MaterialTheme.typography.titleSmall)
+                    Text(soundTitle, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
 
         ToggleCard(
             title = "Vibración",
