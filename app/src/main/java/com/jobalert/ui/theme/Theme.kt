@@ -38,8 +38,10 @@ fun JobAlertTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            val activity = view.context as? Activity
+            if (activity != null) {
+                WindowCompat.getInsetsController(activity.window, view).isAppearanceLightStatusBars = !darkTheme
+            }
         }
     }
 
