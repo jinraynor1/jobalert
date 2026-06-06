@@ -159,6 +159,7 @@ Se usa el mecanismo IMAP UID en lugar de `\Seen` para evitar marcar mensajes com
 | 1→2 | `rules.isEnabled` |
 | 2→3 | Tabla `email_accounts` |
 | 3→4 | `email_accounts.authType`, `email_accounts.oauthConfig` |
+| 4→5 | `email_accounts.needsReauth` |
 
 Las migraciones son aditivas (`ALTER TABLE`) — nunca se recrea una tabla con datos.
 

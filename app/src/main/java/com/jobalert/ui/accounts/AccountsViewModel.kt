@@ -146,6 +146,7 @@ class AccountsViewModel(
                     expirationTime = tokenResponse.accessTokenExpirationTime,
                     credentialStore = credentialStore
                 )
+                repository.setNeedsReauth(account.id, false)
             } finally {
                 service.dispose()
             }

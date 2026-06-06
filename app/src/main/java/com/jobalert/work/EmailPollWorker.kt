@@ -43,6 +43,7 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
             if (credential == null) {
                 Log.w(TAG, "[${account.email}] No credential (may need re-auth) — skipping")
                 notifyReauthRequired(account.email)
+                app.emailAccountRepository.setNeedsReauth(account.id, true)
                 continue
             }
 
@@ -86,6 +87,9 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
                 fetchResult.newLastSeenUid,
                 fetchResult.uidValidity
             )
+            if (account.needsReauth && fetchResult.error == null) {
+                app.emailAccountRepository.setNeedsReauth(account.id, false)
+            }
         }
 
         return Result.success(workDataOf(KEY_NEW_COUNT to newCount))

@@ -21,9 +21,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
@@ -273,6 +275,16 @@ private fun AccountCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (account.authType != "PASSWORD") {
+                val isInvalid = account.needsReauth
+                Icon(
+                    imageVector = if (isInvalid) Icons.Default.Warning else Icons.Default.CheckCircle,
+                    contentDescription = if (isInvalid) "Token inválido, requiere re-autorización" else "Token válido",
+                    tint = if (isInvalid) MaterialTheme.colorScheme.error else Color(0xFF2E7D32),
+                    modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(account.email, style = MaterialTheme.typography.titleSmall)
                 val subtitle = when (account.authType) {

@@ -34,4 +34,6 @@ class EmailAccountRepository(
 
     suspend fun updateUidState(id: Long, lastSeenUid: Long, uidValidity: Long) =
         dao.updateUidState(id, lastSeenUid, uidValidity)
+
+    suspend fun setNeedsReauth(id: Long, value: Boolean) = dao.setNeedsReauth(id, value)
 }

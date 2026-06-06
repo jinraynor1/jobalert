@@ -26,4 +26,7 @@ interface EmailAccountDao {
 
     @Query("UPDATE email_accounts SET isEnabled = :enabled WHERE id = :id")
     suspend fun setEnabled(id: Long, enabled: Boolean)
+
+    @Query("UPDATE email_accounts SET needsReauth = :value WHERE id = :id")
+    suspend fun setNeedsReauth(id: Long, value: Boolean)
 }

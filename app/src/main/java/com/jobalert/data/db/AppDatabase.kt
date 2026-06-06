@@ -11,7 +11,7 @@ import com.jobalert.data.model.AlertEntity
 import com.jobalert.data.model.EmailAccount
 import com.jobalert.domain.Rule
 
-@Database(entities = [AlertEntity::class, Rule::class, EmailAccount::class], version = 4, exportSchema = false)
+@Database(entities = [AlertEntity::class, Rule::class, EmailAccount::class], version = 5, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun alertDao(): AlertDao
@@ -53,10 +53,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE email_accounts ADD COLUMN needsReauth INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(context, AppDatabase::class.java, "jobalert.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }
