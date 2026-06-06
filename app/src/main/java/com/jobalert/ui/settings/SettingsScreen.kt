@@ -48,6 +48,7 @@ fun SettingsScreen() {
         factory = viewModelFactory { initializer { SettingsViewModel(app.settingsRepository) } }
     )
 
+    val darkMode by viewModel.darkMode.collectAsState()
     val soundEnabled by viewModel.soundEnabled.collectAsState()
     val vibrationEnabled by viewModel.vibrationEnabled.collectAsState()
     val quietHoursEnabled by viewModel.quietHoursEnabled.collectAsState()
@@ -65,6 +66,14 @@ fun SettingsScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Ajustes", style = MaterialTheme.typography.headlineSmall)
+
+        // Dark mode toggle
+        ToggleCard(
+            title = "Modo oscuro",
+            description = "Usa el tema oscuro en toda la app",
+            checked = darkMode,
+            onCheckedChange = { viewModel.setDarkMode(it, app) }
+        )
 
         // Mute card
         val isMuted = muteUntil > System.currentTimeMillis()

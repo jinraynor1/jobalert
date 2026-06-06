@@ -36,6 +36,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.jobalert.JobAlertApp
 import com.jobalert.domain.NotificationData
+import com.jobalert.ui.theme.LocalSuccessColor
 
 @Composable
 fun PermissionsScreen() {
@@ -146,7 +147,7 @@ private fun PermissionRow(
                 Text(description, style = MaterialTheme.typography.bodySmall)
                 Text(
                     text = if (granted) "Concedido" else "Pendiente",
-                    color = if (granted) Color(0xFF2E7D32) else Color(0xFFC62828),
+                    color = if (granted) LocalSuccessColor.current else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelMedium
                 )
             }

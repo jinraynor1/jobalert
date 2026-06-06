@@ -55,6 +55,10 @@ class SettingsRepository(context: Context) {
         get() = prefs.getInt("imap_poll_interval_minutes", 15)
         set(value) { prefs.edit().putInt("imap_poll_interval_minutes", value).apply() }
 
+    var darkMode: Boolean
+        get() = prefs.getBoolean("dark_mode", false)
+        set(value) { prefs.edit().putBoolean("dark_mode", value).apply() }
+
     val isWithinMinInterval: Boolean
         get() {
             val intervalMs = minIntervalMinutes * 60_000L

@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.jobalert.ui.theme.LocalSuccessColor
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -177,7 +178,7 @@ private fun AlertHistoryCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (alert.acknowledged) "Atendida" else "Pendiente",
-                        color = if (alert.acknowledged) Color(0xFF2E7D32) else Color(0xFFC62828),
+                        color = if (alert.acknowledged) LocalSuccessColor.current else MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelSmall
                     )
                     IconButton(onClick = { showDeleteDialog = true }) {

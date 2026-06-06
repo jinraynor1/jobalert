@@ -66,6 +66,15 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         app.reschedulePolling()
     }
 
+    private val _darkMode = MutableStateFlow(repository.darkMode)
+    val darkMode: StateFlow<Boolean> = _darkMode.asStateFlow()
+
+    fun setDarkMode(enabled: Boolean, app: JobAlertApp) {
+        repository.darkMode = enabled
+        _darkMode.value = enabled
+        app.setDarkMode(enabled)
+    }
+
     private val _muteUntil = MutableStateFlow(repository.muteUntil)
     val muteUntil: StateFlow<Long> = _muteUntil.asStateFlow()
 

@@ -19,6 +19,9 @@ import com.jobalert.data.repository.SettingsRepository
 import com.jobalert.overlay.OverlayManager
 import com.jobalert.work.EmailPollWorker
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class JobAlertApp : Application() {
 
@@ -28,8 +31,15 @@ class JobAlertApp : Application() {
         const val SCAN_NOW_WORK = "email_poll_now"
     }
 
+    private val _darkMode = MutableStateFlow(false)
+    val darkMode: StateFlow<Boolean> = _darkMode.asStateFlow()
+
+    fun setDarkMode(enabled: Boolean) { _darkMode.value = enabled }
+
     override fun onCreate() {
         super.onCreate()
+        // Seed the dark mode flow from persisted preference after the lazy repo is ready
+        _darkMode.value = settingsRepository.darkMode
         createNotificationChannel()
         schedulePolling()
     }

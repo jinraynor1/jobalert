@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
 import com.jobalert.data.model.EmailAccount
 import com.jobalert.oauth.OAuthConfig
+import com.jobalert.ui.theme.LocalSuccessColor
 import kotlinx.coroutines.launch
 
 private const val GOOGLE_HOST = "imap.gmail.com"
@@ -171,7 +172,7 @@ fun AccountsScreen() {
                             Text(
                                 "Listo · ${st.newCount} nuevos",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF2E7D32)
+                                color = LocalSuccessColor.current
                             )
                         }
                     }
@@ -280,7 +281,7 @@ private fun AccountCard(
                 Icon(
                     imageVector = if (isInvalid) Icons.Default.Warning else Icons.Default.CheckCircle,
                     contentDescription = if (isInvalid) "Token inválido, requiere re-autorización" else "Token válido",
-                    tint = if (isInvalid) MaterialTheme.colorScheme.error else Color(0xFF2E7D32),
+                    tint = if (isInvalid) MaterialTheme.colorScheme.error else LocalSuccessColor.current,
                     modifier = Modifier.size(18.dp).padding(end = 4.dp)
                 )
                 Spacer(Modifier.width(4.dp))
@@ -498,7 +499,7 @@ private fun AccountDialog(
                             Text(
                                 text = it,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (it.startsWith("Conexion exitosa")) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                color = if (it.startsWith("Conexion exitosa")) LocalSuccessColor.current else MaterialTheme.colorScheme.error
                             )
                         }
                     }
