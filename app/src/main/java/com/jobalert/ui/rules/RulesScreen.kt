@@ -1,15 +1,22 @@
 package com.jobalert.ui.rules
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -33,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,6 +49,18 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
 import com.jobalert.domain.Rule
+import com.jobalert.ui.theme.LocalAlertColor
+
+// null = color del tema (rojo por defecto); los demás son ARGB
+private val RULE_COLOR_PRESETS: List<Int?> = listOf(
+    null,
+    0xFFB3261E.toInt(), // Rojo
+    0xFFE65100.toInt(), // Naranja
+    0xFFF9A825.toInt(), // Ámbar
+    0xFF2E7D32.toInt(), // Verde
+    0xFF1565C0.toInt(), // Azul
+    0xFF6A1B9A.toInt(), // Púrpura
+)
 
 @Composable
 fun RulesScreen() {
@@ -89,8 +110,8 @@ fun RulesScreen() {
     if (showAddDialog) {
         RuleDialog(
             initialRule = null,
-            onConfirm = { name, senders, keywords ->
-                viewModel.addRule(name, senders, keywords)
+            onConfirm = { name, senders, keywords, alertColor ->
+                viewModel.addRule(name, senders, keywords, alertColor)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
@@ -117,8 +138,8 @@ fun RulesScreen() {
     editingRule?.let { rule ->
         RuleDialog(
             initialRule = rule,
-            onConfirm = { name, senders, keywords ->
-                viewModel.updateRule(rule, name, senders, keywords)
+            onConfirm = { name, senders, keywords, alertColor ->
+                viewModel.updateRule(rule, name, senders, keywords, alertColor)
                 editingRule = null
             },
             onDismiss = { editingRule = null }
@@ -139,7 +160,15 @@ private fun RuleCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            // Indicador de color de la regla
+            val dotColor = rule.alertColor?.let { Color(it) } ?: LocalAlertColor.current
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(dotColor)
+            )
+            Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
                 Text(rule.name, style = MaterialTheme.typography.titleSmall)
                 if (rule.senders.isNotEmpty()) {
                     Text(
@@ -176,14 +205,16 @@ private fun RuleCard(
 @Composable
 private fun RuleDialog(
     initialRule: Rule?,
-    onConfirm: (name: String, senders: List<String>, keywords: List<String>) -> Unit,
+    onConfirm: (name: String, senders: List<String>, keywords: List<String>, alertColor: Int?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(initialRule?.name ?: "") }
     var sendersText by remember { mutableStateOf(initialRule?.senders?.joinToString(", ") ?: "") }
     var keywordsText by remember { mutableStateOf(initialRule?.keywords?.joinToString(", ") ?: "") }
+    var selectedColor by remember { mutableStateOf(initialRule?.alertColor) }
 
     val isEdit = initialRule != null
+    val themeAlertColor = LocalAlertColor.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -220,6 +251,30 @@ private fun RuleDialog(
                     "Vacío = coincide con cualquier correo del remitente",
                     style = MaterialTheme.typography.bodySmall
                 )
+
+                // Paleta de colores de alerta
+                Text("Color de alerta", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(2.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RULE_COLOR_PRESETS.forEach { preset ->
+                        val swatch = preset?.let { Color(it) } ?: themeAlertColor
+                        val isSelected = selectedColor == preset
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(swatch)
+                                .then(
+                                    if (isSelected) Modifier.border(2.dp, Color.White, CircleShape)
+                                    else Modifier
+                                )
+                                .clickable { selectedColor = preset }
+                        )
+                    }
+                }
+                if (selectedColor == null) {
+                    Text("Por defecto (tema)", style = MaterialTheme.typography.bodySmall)
+                }
             }
         },
         confirmButton = {
@@ -229,7 +284,7 @@ private fun RuleDialog(
                         .map { it.trim() }.filter { it.isNotEmpty() }
                     val keywords = keywordsText.split(",")
                         .map { it.trim() }.filter { it.isNotEmpty() }
-                    onConfirm(name.trim(), senders, keywords)
+                    onConfirm(name.trim(), senders, keywords, selectedColor)
                 },
                 enabled = name.isNotBlank()
             ) {

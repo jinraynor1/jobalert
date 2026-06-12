@@ -13,15 +13,15 @@ class RulesViewModel(private val repository: RuleRepository) : ViewModel() {
     val rules: StateFlow<List<Rule>> = repository.allRules
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun addRule(name: String, senders: List<String>, keywords: List<String>) {
+    fun addRule(name: String, senders: List<String>, keywords: List<String>, alertColor: Int? = null) {
         viewModelScope.launch {
-            repository.insert(Rule(name = name, senders = senders, keywords = keywords))
+            repository.insert(Rule(name = name, senders = senders, keywords = keywords, alertColor = alertColor))
         }
     }
 
-    fun updateRule(rule: Rule, name: String, senders: List<String>, keywords: List<String>) {
+    fun updateRule(rule: Rule, name: String, senders: List<String>, keywords: List<String>, alertColor: Int? = null) {
         viewModelScope.launch {
-            repository.update(rule.copy(name = name, senders = senders, keywords = keywords))
+            repository.update(rule.copy(name = name, senders = senders, keywords = keywords, alertColor = alertColor))
         }
     }
 

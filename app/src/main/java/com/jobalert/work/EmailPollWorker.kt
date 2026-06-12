@@ -76,7 +76,7 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
                         s.isWithinMinInterval -> Log.i(TAG, "INTERVALO MÍNIMO — overlay omitido")
                         else -> {
                             s.lastOverlayShownAt = System.currentTimeMillis()
-                            withContext(Dispatchers.Main) { app.overlayManager.show(data.copy(ruleName = matchedRule.name)) }
+                            withContext(Dispatchers.Main) { app.overlayManager.show(data.copy(ruleName = matchedRule.name, alertColor = matchedRule.alertColor)) }
                         }
                     }
                     newCount++

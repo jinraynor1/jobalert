@@ -9,5 +9,6 @@ data class Rule(
     val name: String,
     val senders: List<String>,
     val keywords: List<String>,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    val alertColor: Int? = null   // ARGB; null = color del tema
 )

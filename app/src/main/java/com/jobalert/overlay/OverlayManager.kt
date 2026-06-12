@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,7 +83,11 @@ class OverlayManager(
             setViewTreeSavedStateRegistryOwner(owner)
             setContent {
                 JobAlertTheme(darkTheme = settingsRepository.darkMode) {
-                    AlertOverlayContent(data = data, onAcknowledge = { dismiss() })
+                    val baseColor = LocalAlertColor.current
+                    val effective = data.alertColor?.let { Color(it) } ?: baseColor
+                    CompositionLocalProvider(LocalAlertColor provides effective) {
+                        AlertOverlayContent(data = data, onAcknowledge = { dismiss() })
+                    }
                 }
             }
         }
