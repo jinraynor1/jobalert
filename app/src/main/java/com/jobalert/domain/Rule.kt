@@ -8,7 +8,8 @@ data class Rule(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val senders: List<String>,
-    val keywords: List<String>,
+    val subjectKeywords: List<String>,
+    val bodyKeywords: List<String>,
     val isEnabled: Boolean = true,
     val alertColor: Int? = null   // ARGB; null = color del tema
 )

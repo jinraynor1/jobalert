@@ -9,69 +9,87 @@ class RuleEngineTest {
 
     private val data = NotificationData(
         sender = "alertas@sistema.com",
-        subject = "CRITICAL: Server DOWN",
-        snippet = "El servidor production-01 no responde desde las 03:00"
+        subject = "Error aplicativos",
+        snippet = "CRITICAL: El servidor production-01 no responde desde las 03:00"
     )
 
     @Test
-    fun `matches when sender substring and keyword both match`() {
-        val rules = listOf(Rule(name = "Prod", senders = listOf("sistema.com"), keywords = listOf("CRITICAL")))
-        assertTrue(RuleEngine.match(data, rules))
+    fun `matches when sender, subject keyword and body keyword all match`() {
+        val rule = Rule(name = "Prod", senders = listOf("sistema.com"), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = listOf("CRITICAL"))
+        assertNotNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `does not match when sender does not match any in list`() {
-        val rules = listOf(Rule(name = "Prod", senders = listOf("otro.com"), keywords = listOf("CRITICAL")))
-        assertFalse(RuleEngine.match(data, rules))
+    fun `does not match when sender does not match`() {
+        val rule = Rule(name = "Prod", senders = listOf("otro.com"), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = listOf("CRITICAL"))
+        assertNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `does not match when no keyword found in subject or snippet`() {
-        val rules = listOf(Rule(name = "Prod", senders = listOf("sistema.com"), keywords = listOf("WARNING")))
-        assertFalse(RuleEngine.match(data, rules))
+    fun `does not match when subject keyword not found`() {
+        val rule = Rule(name = "Prod", senders = listOf("sistema.com"), subjectKeywords = listOf("Backup report"), bodyKeywords = listOf("CRITICAL"))
+        assertNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `match is case insensitive for sender and keyword`() {
-        val rules = listOf(Rule(name = "Prod", senders = listOf("SISTEMA.COM"), keywords = listOf("critical")))
-        assertTrue(RuleEngine.match(data, rules))
+    fun `does not match when body keyword not found`() {
+        val rule = Rule(name = "Prod", senders = listOf("sistema.com"), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = listOf("EMERGENCY"))
+        assertNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `matches keyword found in snippet even if not in subject`() {
-        val rules = listOf(Rule(name = "Prod", senders = listOf("sistema.com"), keywords = listOf("production-01")))
-        assertTrue(RuleEngine.match(data, rules))
+    fun `differentiates two rules with same sender and subject but different body keywords`() {
+        val rule1 = Rule(name = "Critical", senders = listOf("sistema.com"), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = listOf("CRITICAL"))
+        val rule2 = Rule(name = "Emergency", senders = listOf("sistema.com"), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = listOf("EMERGENCY"))
+        assertEquals("Critical", RuleEngine.match(data, listOf(rule1, rule2))?.name)
+        assertNull(RuleEngine.match(data, listOf(rule2)))
+    }
+
+    @Test
+    fun `match is case insensitive`() {
+        val rule = Rule(name = "Prod", senders = listOf("SISTEMA.COM"), subjectKeywords = listOf("error aplicativos"), bodyKeywords = listOf("critical"))
+        assertNotNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
     fun `empty rules list never matches`() {
-        assertFalse(RuleEngine.match(data, emptyList()))
+        assertNull(RuleEngine.match(data, emptyList()))
     }
 
     @Test
     fun `empty sender list matches any sender`() {
-        val rules = listOf(Rule(name = "Any", senders = emptyList(), keywords = listOf("CRITICAL")))
-        assertTrue(RuleEngine.match(data, rules))
+        val rule = Rule(name = "Any", senders = emptyList(), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = listOf("CRITICAL"))
+        assertNotNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `empty keyword list matches any content`() {
-        val rules = listOf(Rule(name = "Any", senders = listOf("sistema.com"), keywords = emptyList()))
-        assertTrue(RuleEngine.match(data, rules))
+    fun `empty subjectKeywords matches any subject`() {
+        val rule = Rule(name = "Any", senders = listOf("sistema.com"), subjectKeywords = emptyList(), bodyKeywords = listOf("CRITICAL"))
+        assertNotNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `second rule matches when first rule does not`() {
-        val rules = listOf(
-            Rule(name = "Rule1", senders = listOf("otro.com"), keywords = listOf("CRITICAL")),
-            Rule(name = "Rule2", senders = listOf("sistema.com"), keywords = listOf("CRITICAL"))
-        )
-        assertTrue(RuleEngine.match(data, rules))
+    fun `empty bodyKeywords matches any body`() {
+        val rule = Rule(name = "Any", senders = listOf("sistema.com"), subjectKeywords = listOf("Error aplicativos"), bodyKeywords = emptyList())
+        assertNotNull(RuleEngine.match(data, listOf(rule)))
     }
 
     @Test
-    fun `does not match sender with empty keywords if rule has keywords`() {
-        val rules = listOf(Rule(name = "Prod", senders = listOf("sistema.com"), keywords = listOf("NEVER_HERE")))
-        assertFalse(RuleEngine.match(data, rules))
+    fun `all empty filters matches any message`() {
+        val rule = Rule(name = "Any", senders = emptyList(), subjectKeywords = emptyList(), bodyKeywords = emptyList())
+        assertNotNull(RuleEngine.match(data, listOf(rule)))
+    }
+
+    @Test
+    fun `second rule matches when first does not`() {
+        val rule1 = Rule(name = "Rule1", senders = listOf("otro.com"), subjectKeywords = emptyList(), bodyKeywords = listOf("CRITICAL"))
+        val rule2 = Rule(name = "Rule2", senders = listOf("sistema.com"), subjectKeywords = emptyList(), bodyKeywords = listOf("CRITICAL"))
+        assertEquals("Rule2", RuleEngine.match(data, listOf(rule1, rule2))?.name)
+    }
+
+    @Test
+    fun `disabled rule does not match`() {
+        val rule = Rule(name = "Prod", senders = listOf("sistema.com"), subjectKeywords = emptyList(), bodyKeywords = emptyList(), isEnabled = false)
+        assertNull(RuleEngine.match(data, listOf(rule)))
     }
 }

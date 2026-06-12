@@ -12,12 +12,12 @@ object RuleEngine {
         val senderMatches = rule.senders.isEmpty() ||
             rule.senders.any { data.sender.contains(it, ignoreCase = true) }
 
-        val keywordMatches = rule.keywords.isEmpty() ||
-            rule.keywords.any { kw ->
-                data.subject.contains(kw, ignoreCase = true) ||
-                    data.snippet.contains(kw, ignoreCase = true)
-            }
+        val subjectMatches = rule.subjectKeywords.isEmpty() ||
+            rule.subjectKeywords.any { data.subject.contains(it, ignoreCase = true) }
 
-        return senderMatches && keywordMatches
+        val bodyMatches = rule.bodyKeywords.isEmpty() ||
+            rule.bodyKeywords.any { data.snippet.contains(it, ignoreCase = true) }
+
+        return senderMatches && subjectMatches && bodyMatches
     }
 }

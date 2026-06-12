@@ -51,7 +51,6 @@ import com.jobalert.JobAlertApp
 import com.jobalert.domain.Rule
 import com.jobalert.ui.theme.LocalAlertColor
 
-// null = color del tema (rojo por defecto); los demás son ARGB
 private val RULE_COLOR_PRESETS: List<Int?> = listOf(
     null,
     0xFFB3261E.toInt(), // Rojo
@@ -110,8 +109,8 @@ fun RulesScreen() {
     if (showAddDialog) {
         RuleDialog(
             initialRule = null,
-            onConfirm = { name, senders, keywords, alertColor ->
-                viewModel.addRule(name, senders, keywords, alertColor)
+            onConfirm = { name, senders, subjectKeywords, bodyKeywords, alertColor ->
+                viewModel.addRule(name, senders, subjectKeywords, bodyKeywords, alertColor)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
@@ -138,8 +137,8 @@ fun RulesScreen() {
     editingRule?.let { rule ->
         RuleDialog(
             initialRule = rule,
-            onConfirm = { name, senders, keywords, alertColor ->
-                viewModel.updateRule(rule, name, senders, keywords, alertColor)
+            onConfirm = { name, senders, subjectKeywords, bodyKeywords, alertColor ->
+                viewModel.updateRule(rule, name, senders, subjectKeywords, bodyKeywords, alertColor)
                 editingRule = null
             },
             onDismiss = { editingRule = null }
@@ -160,7 +159,6 @@ private fun RuleCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Indicador de color de la regla
             val dotColor = rule.alertColor?.let { Color(it) } ?: LocalAlertColor.current
             Box(
                 modifier = Modifier
@@ -178,13 +176,21 @@ private fun RuleCard(
                 } else {
                     Text("Remitente: cualquiera", style = MaterialTheme.typography.bodySmall)
                 }
-                if (rule.keywords.isNotEmpty()) {
+                if (rule.subjectKeywords.isNotEmpty()) {
                     Text(
-                        "Keywords: ${rule.keywords.joinToString(", ")}",
+                        "Asunto: ${rule.subjectKeywords.joinToString(", ")}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 } else {
-                    Text("Keywords: cualquiera", style = MaterialTheme.typography.bodySmall)
+                    Text("Asunto: cualquiera", style = MaterialTheme.typography.bodySmall)
+                }
+                if (rule.bodyKeywords.isNotEmpty()) {
+                    Text(
+                        "Cuerpo: ${rule.bodyKeywords.joinToString(", ")}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else {
+                    Text("Cuerpo: cualquiera", style = MaterialTheme.typography.bodySmall)
                 }
             }
             Switch(
@@ -205,12 +211,13 @@ private fun RuleCard(
 @Composable
 private fun RuleDialog(
     initialRule: Rule?,
-    onConfirm: (name: String, senders: List<String>, keywords: List<String>, alertColor: Int?) -> Unit,
+    onConfirm: (name: String, senders: List<String>, subjectKeywords: List<String>, bodyKeywords: List<String>, alertColor: Int?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(initialRule?.name ?: "") }
     var sendersText by remember { mutableStateOf(initialRule?.senders?.joinToString(", ") ?: "") }
-    var keywordsText by remember { mutableStateOf(initialRule?.keywords?.joinToString(", ") ?: "") }
+    var subjectKeywordsText by remember { mutableStateOf(initialRule?.subjectKeywords?.joinToString(", ") ?: "") }
+    var bodyKeywordsText by remember { mutableStateOf(initialRule?.bodyKeywords?.joinToString(", ") ?: "") }
     var selectedColor by remember { mutableStateOf(initialRule?.alertColor) }
 
     val isEdit = initialRule != null
@@ -232,7 +239,7 @@ private fun RuleDialog(
                     value = sendersText,
                     onValueChange = { sendersText = it },
                     label = { Text("Remitente — nombre o correo (separados por coma)") },
-                    placeholder = { Text("ej: Sistema Claro, mailer@claro, Indra") },
+                    placeholder = { Text("ej: Sistema Claro, mailer@claro") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
@@ -241,18 +248,24 @@ private fun RuleDialog(
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
-                    value = keywordsText,
-                    onValueChange = { keywordsText = it },
-                    label = { Text("Keywords en asunto/cuerpo (separadas por coma)") },
-                    placeholder = { Text("ej: CRITICAL, DOWN, FALLO") },
+                    value = subjectKeywordsText,
+                    onValueChange = { subjectKeywordsText = it },
+                    label = { Text("Keywords en asunto (separadas por coma)") },
+                    placeholder = { Text("ej: Error aplicativos, ALERTA") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = bodyKeywordsText,
+                    onValueChange = { bodyKeywordsText = it },
+                    label = { Text("Keywords en cuerpo (separadas por coma)") },
+                    placeholder = { Text("ej: CRITICAL, EMERGENCY") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "Vacío = coincide con cualquier correo del remitente",
+                    "Vacío = coincide con cualquier valor. Los tres filtros se combinan con AND.",
                     style = MaterialTheme.typography.bodySmall
                 )
 
-                // Paleta de colores de alerta
                 Text("Color de alerta", style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(2.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -280,11 +293,10 @@ private fun RuleDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val senders = sendersText.split(",")
-                        .map { it.trim() }.filter { it.isNotEmpty() }
-                    val keywords = keywordsText.split(",")
-                        .map { it.trim() }.filter { it.isNotEmpty() }
-                    onConfirm(name.trim(), senders, keywords, selectedColor)
+                    val senders = sendersText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    val subjectKeywords = subjectKeywordsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    val bodyKeywords = bodyKeywordsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    onConfirm(name.trim(), senders, subjectKeywords, bodyKeywords, selectedColor)
                 },
                 enabled = name.isNotBlank()
             ) {
