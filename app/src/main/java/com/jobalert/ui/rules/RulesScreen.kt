@@ -52,6 +52,7 @@ fun RulesScreen() {
     val rules by viewModel.rules.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<Rule?>(null) }
+    var ruleToDelete by remember { mutableStateOf<Rule?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -78,7 +79,7 @@ fun RulesScreen() {
                         rule = rule,
                         onToggle = { viewModel.setRuleEnabled(rule.id, it) },
                         onEdit = { editingRule = rule },
-                        onDelete = { viewModel.deleteRule(rule) }
+                        onDelete = { ruleToDelete = rule }
                     )
                 }
             }
@@ -93,6 +94,23 @@ fun RulesScreen() {
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
+        )
+    }
+
+    ruleToDelete?.let { rule ->
+        AlertDialog(
+            onDismissRequest = { ruleToDelete = null },
+            title = { Text("Eliminar regla") },
+            text = { Text("¿Eliminar \"${rule.name}\"? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteRule(rule)
+                    ruleToDelete = null
+                }) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { ruleToDelete = null }) { Text("Cancelar") }
+            }
         )
     }
 
