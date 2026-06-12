@@ -5,10 +5,8 @@ import com.jobalert.domain.Rule
 
 object RuleEngine {
 
-    fun match(data: NotificationData, rules: List<Rule>): Boolean {
-        if (rules.isEmpty()) return false
-        return rules.filter { it.isEnabled }.any { rule -> matchesRule(data, rule) }
-    }
+    fun match(data: NotificationData, rules: List<Rule>): Rule? =
+        rules.filter { it.isEnabled }.firstOrNull { rule -> matchesRule(data, rule) }
 
     private fun matchesRule(data: NotificationData, rule: Rule): Boolean {
         val senderMatches = rule.senders.isEmpty() ||

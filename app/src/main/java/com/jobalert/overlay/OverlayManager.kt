@@ -155,7 +155,7 @@ fun AlertOverlayContent(data: NotificationData, onAcknowledge: () -> Unit) {
         ) {
             // Encabezado fijo
             Text(
-                text = "ALERTA",
+                text = data.ruleName.ifBlank { "ALERTA" },
                 style = MaterialTheme.typography.displayMedium,
                 color = Color.White
             )

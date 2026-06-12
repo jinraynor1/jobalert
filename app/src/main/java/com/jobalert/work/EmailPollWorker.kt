@@ -58,8 +58,9 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
             Log.i(TAG, "[${account.email}] Fetched ${fetchResult.messages.size} message(s) — lastSeenUid=${fetchResult.newLastSeenUid}, uidValidity=${fetchResult.uidValidity}")
 
             for (data in fetchResult.messages) {
-                if (RuleEngine.match(data, rules)) {
-                    Log.i(TAG, "[${account.email}] Rule matched — saving alert: ${data.subject}")
+                val matchedRule = RuleEngine.match(data, rules)
+                if (matchedRule != null) {
+                    Log.i(TAG, "[${account.email}] Rule '${matchedRule.name}' matched — saving alert: ${data.subject}")
                     app.alertRepository.insert(
                         AlertEntity(
                             timestamp = System.currentTimeMillis(),
@@ -75,7 +76,7 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
                         s.isWithinMinInterval -> Log.i(TAG, "INTERVALO MÍNIMO — overlay omitido")
                         else -> {
                             s.lastOverlayShownAt = System.currentTimeMillis()
-                            withContext(Dispatchers.Main) { app.overlayManager.show(data) }
+                            withContext(Dispatchers.Main) { app.overlayManager.show(data.copy(ruleName = matchedRule.name)) }
                         }
                     }
                     newCount++
