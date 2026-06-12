@@ -14,7 +14,6 @@ import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMultipart
 
 private const val TAG = "JobAlert-IMAP"
-private const val SNIPPET_MAX_CHARS = 500
 
 data class FetchResult(
     val messages: List<NotificationData>,
@@ -25,10 +24,10 @@ data class FetchResult(
 
 object ImapClient {
 
-    suspend fun fetchNew(account: EmailAccount, credential: String): FetchResult =
+    suspend fun fetchNew(account: EmailAccount, credential: String, snippetMaxChars: Int = 500): FetchResult =
         withContext(Dispatchers.IO) {
             if (account.authType != "PASSWORD") {
-                return@withContext ImapOAuthClient.fetchNew(account, credential)
+                return@withContext ImapOAuthClient.fetchNew(account, credential, snippetMaxChars)
             }
             var store: javax.mail.Store? = null
             var folder: Folder? = null
@@ -64,7 +63,7 @@ object ImapClient {
                     if (uid <= account.lastSeenUid) continue
                     if (uid > maxUid) maxUid = uid
                     try {
-                        val data = messageToNotificationData(msg)
+                        val data = messageToNotificationData(msg, snippetMaxChars)
                         results.add(data)
                         Log.i(TAG, "[${account.email}] New message uid=$uid from=${data.sender}")
                     } catch (e: Exception) {
@@ -129,13 +128,13 @@ object ImapClient {
             put("mail.imap.timeout", "15000")
         }
 
-    fun messageToNotificationData(msg: javax.mail.Message): NotificationData {
+    fun messageToNotificationData(msg: javax.mail.Message, snippetMaxChars: Int = 500): NotificationData {
         val from = msg.from?.firstOrNull()?.let {
             if (it is InternetAddress) it.personal?.takeIf { p -> p.isNotBlank() } ?: it.address
             else it.toString()
         } ?: ""
         val subject = msg.subject?.trim() ?: ""
-        val snippet = extractTextSnippet(msg).take(SNIPPET_MAX_CHARS)
+        val snippet = extractTextSnippet(msg).take(snippetMaxChars)
         return NotificationData(sender = from, subject = subject, snippet = snippet)
     }
 

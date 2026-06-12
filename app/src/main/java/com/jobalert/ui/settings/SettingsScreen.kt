@@ -35,16 +35,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
+import com.jobalert.ui.theme.JobAlertTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 private val INTERVAL_OPTIONS = listOf(0, 1, 2, 5, 10, 15, 30, 60)
+private val SNIPPET_OPTIONS = listOf(100, 200, 500, 1000, 2000, 3000, 4000)
 
 @Composable
 fun SettingsScreen() {
@@ -64,6 +67,7 @@ fun SettingsScreen() {
     val minIntervalMinutes by viewModel.minIntervalMinutes.collectAsState()
     val muteUntil by viewModel.muteUntil.collectAsState()
     val imapPollIntervalMinutes by viewModel.imapPollIntervalMinutes.collectAsState()
+    val snippetMaxChars by viewModel.snippetMaxChars.collectAsState()
 
     val ringtonePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -83,6 +87,71 @@ fun SettingsScreen() {
         }.getOrNull() ?: "Predeterminado del sistema"
     }
 
+    SettingsScreenContent(
+        darkMode = darkMode,
+        soundEnabled = soundEnabled,
+        soundTitle = soundTitle,
+        vibrationEnabled = vibrationEnabled,
+        quietHoursEnabled = quietHoursEnabled,
+        quietHoursStartHour = quietHoursStartHour,
+        quietHoursEndHour = quietHoursEndHour,
+        minIntervalMinutes = minIntervalMinutes,
+        muteUntil = muteUntil,
+        imapPollIntervalMinutes = imapPollIntervalMinutes,
+        snippetMaxChars = snippetMaxChars,
+        onDarkModeChange = { viewModel.setDarkMode(it, app) },
+        onSoundEnabledChange = { viewModel.setSoundEnabled(it) },
+        onRingtonePickerLaunch = {
+            val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Sonido de la alarma")
+                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                putExtra(
+                    RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                    alarmSoundUri?.let { Uri.parse(it) }
+                )
+            }
+            ringtonePicker.launch(intent)
+        },
+        onVibrationEnabledChange = { viewModel.setVibrationEnabled(it) },
+        onQuietHoursEnabledChange = { viewModel.setQuietHoursEnabled(it) },
+        onQuietHoursStartHourChange = { viewModel.setQuietHoursStartHour(it) },
+        onQuietHoursEndHourChange = { viewModel.setQuietHoursEndHour(it) },
+        onMinIntervalMinutesChange = { viewModel.setMinIntervalMinutes(it) },
+        onMuteFor = { viewModel.muteFor(it) },
+        onUnmute = { viewModel.unmute() },
+        onImapPollIntervalMinutesChange = { viewModel.setImapPollIntervalMinutes(it, app) },
+        onSnippetMaxCharsChange = { viewModel.setSnippetMaxChars(it) }
+    )
+}
+
+@Composable
+private fun SettingsScreenContent(
+    darkMode: Boolean,
+    soundEnabled: Boolean,
+    soundTitle: String,
+    vibrationEnabled: Boolean,
+    quietHoursEnabled: Boolean,
+    quietHoursStartHour: Int,
+    quietHoursEndHour: Int,
+    minIntervalMinutes: Int,
+    muteUntil: Long,
+    imapPollIntervalMinutes: Int,
+    snippetMaxChars: Int,
+    onDarkModeChange: (Boolean) -> Unit,
+    onSoundEnabledChange: (Boolean) -> Unit,
+    onRingtonePickerLaunch: () -> Unit,
+    onVibrationEnabledChange: (Boolean) -> Unit,
+    onQuietHoursEnabledChange: (Boolean) -> Unit,
+    onQuietHoursStartHourChange: (Int) -> Unit,
+    onQuietHoursEndHourChange: (Int) -> Unit,
+    onMinIntervalMinutesChange: (Int) -> Unit,
+    onMuteFor: (Long) -> Unit,
+    onUnmute: () -> Unit,
+    onImapPollIntervalMinutesChange: (Int) -> Unit,
+    onSnippetMaxCharsChange: (Int) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,15 +161,13 @@ fun SettingsScreen() {
     ) {
         Text("Ajustes", style = MaterialTheme.typography.headlineSmall)
 
-        // Dark mode toggle
         ToggleCard(
             title = "Modo oscuro",
             description = "Usa el tema oscuro en toda la app",
             checked = darkMode,
-            onCheckedChange = { viewModel.setDarkMode(it, app) }
+            onCheckedChange = onDarkModeChange
         )
 
-        // Mute card
         val isMuted = muteUntil > System.currentTimeMillis()
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -120,7 +187,7 @@ fun SettingsScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Silenciado hasta $timeStr", style = MaterialTheme.typography.bodyMedium)
-                        OutlinedButton(onClick = { viewModel.unmute() }) { Text("Reactivar") }
+                        OutlinedButton(onClick = onUnmute) { Text("Reactivar") }
                     }
                 } else {
                     Row(
@@ -133,7 +200,7 @@ fun SettingsScreen() {
                             "8h" to 8 * 60 * 60_000L
                         ).forEach { (label, ms) ->
                             OutlinedButton(
-                                onClick = { viewModel.muteFor(ms) },
+                                onClick = { onMuteFor(ms) },
                                 modifier = Modifier.weight(1f)
                             ) { Text(label) }
                         }
@@ -142,7 +209,6 @@ fun SettingsScreen() {
             }
         }
 
-        // Poll interval card
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Intervalo de revisión de correo", style = MaterialTheme.typography.titleSmall)
@@ -165,7 +231,7 @@ fun SettingsScreen() {
                             ) { Text("${minutes}m") }
                         } else {
                             OutlinedButton(
-                                onClick = { viewModel.setImapPollIntervalMinutes(minutes, app) },
+                                onClick = { onImapPollIntervalMinutesChange(minutes) },
                                 modifier = Modifier.weight(1f)
                             ) { Text("${minutes}m") }
                         }
@@ -178,25 +244,13 @@ fun SettingsScreen() {
             title = "Sonido de alarma",
             description = "Reproduce el sonido de alarma del sistema al recibir una alerta",
             checked = soundEnabled,
-            onCheckedChange = { viewModel.setSoundEnabled(it) }
+            onCheckedChange = onSoundEnabledChange
         )
 
         if (soundEnabled) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Sonido de la alarma")
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                        putExtra(
-                            RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
-                            alarmSoundUri?.let { Uri.parse(it) }
-                        )
-                    }
-                    ringtonePicker.launch(intent)
-                }
+                onClick = onRingtonePickerLaunch
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Tono de la alarma", style = MaterialTheme.typography.titleSmall)
@@ -209,7 +263,7 @@ fun SettingsScreen() {
             title = "Vibración",
             description = "Vibra al recibir una alerta, incluso con el teléfono en silencio",
             checked = vibrationEnabled,
-            onCheckedChange = { viewModel.setVibrationEnabled(it) }
+            onCheckedChange = onVibrationEnabledChange
         )
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -226,7 +280,7 @@ fun SettingsScreen() {
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Switch(checked = quietHoursEnabled, onCheckedChange = { viewModel.setQuietHoursEnabled(it) })
+                    Switch(checked = quietHoursEnabled, onCheckedChange = onQuietHoursEnabledChange)
                 }
                 if (quietHoursEnabled) {
                     Spacer(Modifier.height(12.dp))
@@ -237,15 +291,54 @@ fun SettingsScreen() {
                         HourStepper(
                             label = "Inicio",
                             hour = quietHoursStartHour,
-                            onDecrement = { viewModel.setQuietHoursStartHour((quietHoursStartHour - 1 + 24) % 24) },
-                            onIncrement = { viewModel.setQuietHoursStartHour((quietHoursStartHour + 1) % 24) }
+                            onDecrement = { onQuietHoursStartHourChange((quietHoursStartHour - 1 + 24) % 24) },
+                            onIncrement = { onQuietHoursStartHourChange((quietHoursStartHour + 1) % 24) }
                         )
                         HourStepper(
                             label = "Fin",
                             hour = quietHoursEndHour,
-                            onDecrement = { viewModel.setQuietHoursEndHour((quietHoursEndHour - 1 + 24) % 24) },
-                            onIncrement = { viewModel.setQuietHoursEndHour((quietHoursEndHour + 1) % 24) }
+                            onDecrement = { onQuietHoursEndHourChange((quietHoursEndHour - 1 + 24) % 24) },
+                            onIncrement = { onQuietHoursEndHourChange((quietHoursEndHour + 1) % 24) }
                         )
+                    }
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "Longitud del fragmento de correo",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    "Número máximo de caracteres del cuerpo del correo guardados en el historial",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                val rows = SNIPPET_OPTIONS.chunked(4)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    rows.forEach { rowOptions ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowOptions.forEach { chars ->
+                                val selected = snippetMaxChars == chars
+                                val label = if (chars >= 1000) "${chars / 1000}k" else "${chars}c"
+                                if (selected) {
+                                    Button(
+                                        onClick = {},
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(label) }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { onSnippetMaxCharsChange(chars) },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(label) }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -276,7 +369,7 @@ fun SettingsScreen() {
                                     ) { Text(label) }
                                 } else {
                                     OutlinedButton(
-                                        onClick = { viewModel.setMinIntervalMinutes(minutes) },
+                                        onClick = { onMinIntervalMinutesChange(minutes) },
                                         modifier = Modifier.weight(1f)
                                     ) { Text(label) }
                                 }
@@ -327,5 +420,37 @@ private fun HourStepper(label: String, hour: Int, onDecrement: () -> Unit, onInc
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Aumentar hora")
             }
         }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun SettingsScreenPreview() {
+    JobAlertTheme(darkTheme = false) {
+        SettingsScreenContent(
+            darkMode = false,
+            soundEnabled = true,
+            soundTitle = "Alarma predeterminada",
+            vibrationEnabled = false,
+            quietHoursEnabled = true,
+            quietHoursStartHour = 23,
+            quietHoursEndHour = 7,
+            minIntervalMinutes = 5,
+            muteUntil = 0L,
+            imapPollIntervalMinutes = 15,
+            snippetMaxChars = 500,
+            onDarkModeChange = {},
+            onSoundEnabledChange = {},
+            onRingtonePickerLaunch = {},
+            onVibrationEnabledChange = {},
+            onQuietHoursEnabledChange = {},
+            onQuietHoursStartHourChange = {},
+            onQuietHoursEndHourChange = {},
+            onMinIntervalMinutesChange = {},
+            onMuteFor = {},
+            onUnmute = {},
+            onImapPollIntervalMinutesChange = {},
+            onSnippetMaxCharsChange = {}
+        )
     }
 }

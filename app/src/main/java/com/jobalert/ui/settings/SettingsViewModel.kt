@@ -83,6 +83,14 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         _alarmSoundUri.value = uri
     }
 
+    private val _snippetMaxChars = MutableStateFlow(repository.snippetMaxChars)
+    val snippetMaxChars: StateFlow<Int> = _snippetMaxChars.asStateFlow()
+
+    fun setSnippetMaxChars(chars: Int) {
+        repository.snippetMaxChars = chars
+        _snippetMaxChars.value = chars
+    }
+
     private val _muteUntil = MutableStateFlow(repository.muteUntil)
     val muteUntil: StateFlow<Long> = _muteUntil.asStateFlow()
 

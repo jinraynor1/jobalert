@@ -48,7 +48,7 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
             }
 
             val fetchResult = withContext(Dispatchers.IO) {
-                com.jobalert.imap.ImapClient.fetchNew(account, credential)
+                com.jobalert.imap.ImapClient.fetchNew(account, credential, app.settingsRepository.snippetMaxChars)
             }
 
             if (fetchResult.error != null) {

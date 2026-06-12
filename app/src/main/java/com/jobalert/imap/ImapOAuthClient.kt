@@ -15,7 +15,7 @@ private const val TAG = "JobAlert-ImapOAuth"
 // This client implements XOAUTH2 directly over an SSL socket — no SASL framework needed.
 internal object ImapOAuthClient {
 
-    fun fetchNew(account: EmailAccount, accessToken: String): FetchResult {
+    fun fetchNew(account: EmailAccount, accessToken: String, snippetMaxChars: Int = 500): FetchResult {
         var tagN = 0
         fun tag() = "T${++tagN}"
 
@@ -172,7 +172,7 @@ internal object ImapOAuthClient {
 
                 try {
                     val mime = MimeMessage(mailSession, rawBytes.inputStream())
-                    val data = ImapClient.messageToNotificationData(mime)
+                    val data = ImapClient.messageToNotificationData(mime, snippetMaxChars)
                     results.add(data)
                     Log.i(TAG, "[${account.email}] uid=$uid from=${data.sender} subj=${data.subject}")
                 } catch (e: Exception) {

@@ -63,6 +63,10 @@ class SettingsRepository(context: Context) {
         get() = prefs.getString("alarm_sound_uri", null)
         set(value) { prefs.edit().putString("alarm_sound_uri", value).apply() }
 
+    var snippetMaxChars: Int
+        get() = prefs.getInt("snippet_max_chars", 500)
+        set(value) { prefs.edit().putInt("snippet_max_chars", value).apply() }
+
     val isWithinMinInterval: Boolean
         get() {
             val intervalMs = minIntervalMinutes * 60_000L
