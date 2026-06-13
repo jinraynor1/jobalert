@@ -35,7 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.jobalert.JobAlertApp
-import com.jobalert.domain.NotificationData
+import com.jobalert.domain.model.NotificationData
 import com.jobalert.ui.theme.LocalSuccessColor
 
 @Composable

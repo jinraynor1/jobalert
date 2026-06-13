@@ -44,7 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
-import com.jobalert.data.model.AlertEntity
+import com.jobalert.domain.model.Alert
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -125,7 +125,7 @@ fun HistoryScreen() {
 
 @Composable
 private fun AlertHistoryCard(
-    alert: AlertEntity,
+    alert: Alert,
     onAcknowledge: () -> Unit,
     onDelete: () -> Unit
 ) {

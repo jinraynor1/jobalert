@@ -53,7 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
-import com.jobalert.domain.Rule
+import com.jobalert.domain.model.Rule
 import com.jobalert.ui.theme.LocalAlertColor
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState

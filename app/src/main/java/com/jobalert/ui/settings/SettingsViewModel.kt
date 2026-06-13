@@ -2,7 +2,7 @@ package com.jobalert.ui.settings
 
 import androidx.lifecycle.ViewModel
 import com.jobalert.JobAlertApp
-import com.jobalert.data.repository.SettingsRepository
+import com.jobalert.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

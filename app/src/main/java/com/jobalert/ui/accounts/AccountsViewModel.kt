@@ -5,12 +5,11 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
-import com.jobalert.data.model.EmailAccount
-import com.jobalert.data.repository.CredentialStore
-import com.jobalert.data.repository.EmailAccountRepository
-import com.jobalert.imap.ImapClient
-import com.jobalert.oauth.OAuthConfig
-import com.jobalert.oauth.OAuthTokenManager
+import com.jobalert.background.EmailPollWorker
+import com.jobalert.domain.model.EmailAccount
+import com.jobalert.domain.model.OAuthConfig
+import com.jobalert.domain.repository.EmailAccountRepository
+import com.jobalert.domain.repository.MailAuthGateway
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +31,7 @@ sealed interface ScanState {
 
 class AccountsViewModel(
     private val repository: EmailAccountRepository,
-    private val credentialStore: CredentialStore
+    private val mailAuthGateway: MailAuthGateway
 ) : ViewModel() {
 
     private val gson = Gson()
@@ -70,7 +69,7 @@ class AccountsViewModel(
     }
 
     suspend fun testConnection(host: String, port: Int, useSsl: Boolean, email: String, credential: String, authType: String = "PASSWORD"): Result<Unit> {
-        return ImapClient.testConnection(host, port, useSsl, email, credential, authType)
+        return mailAuthGateway.testConnection(host, port, useSsl, email, credential, authType)
     }
 
     // --- OAuth accounts ---
@@ -78,7 +77,7 @@ class AccountsViewModel(
     // Builds the Custom Tabs intent for the given auth type. Suspend because it fetches
     // the discovery document over the network for Google and Microsoft.
     suspend fun buildOAuthIntent(authType: String, oauthConfig: OAuthConfig?, context: Context): Intent? {
-        return OAuthTokenManager.buildAuthorizationIntent(authType, oauthConfig, context)
+        return mailAuthGateway.buildAuthorizationIntent(authType, oauthConfig, context)
     }
 
     // Called when the Custom Tabs flow returns with an authorization code.
@@ -103,12 +102,11 @@ class AccountsViewModel(
                     }
                 } ?: return@launch
 
-                OAuthTokenManager.storeTokensFromResponse(
+                mailAuthGateway.storeTokensFromResponse(
                     email = email,
                     accessToken = tokenResponse.accessToken ?: return@launch,
                     refreshToken = tokenResponse.refreshToken ?: return@launch,
-                    expirationTime = tokenResponse.accessTokenExpirationTime,
-                    credentialStore = credentialStore
+                    expirationTime = tokenResponse.accessTokenExpirationTime
                 )
 
                 repository.insert(
@@ -139,12 +137,11 @@ class AccountsViewModel(
                         cont.resume(resp)
                     }
                 } ?: return@launch
-                OAuthTokenManager.storeTokensFromResponse(
+                mailAuthGateway.storeTokensFromResponse(
                     email = account.email,
                     accessToken = tokenResponse.accessToken ?: return@launch,
                     refreshToken = tokenResponse.refreshToken ?: return@launch,
-                    expirationTime = tokenResponse.accessTokenExpirationTime,
-                    credentialStore = credentialStore
+                    expirationTime = tokenResponse.accessTokenExpirationTime
                 )
                 repository.setNeedsReauth(account.id, false)
             } finally {
@@ -167,7 +164,7 @@ class AccountsViewModel(
                     val info = infos.firstOrNull() ?: return@collect
                     when (info.state) {
                         androidx.work.WorkInfo.State.SUCCEEDED -> {
-                            val n = info.outputData.getInt(com.jobalert.work.EmailPollWorker.KEY_NEW_COUNT, 0)
+                            val n = info.outputData.getInt(EmailPollWorker.KEY_NEW_COUNT, 0)
                             _scanState.value = ScanState.Done(n)
                             kotlinx.coroutines.delay(2000)
                             _scanState.value = ScanState.Idle

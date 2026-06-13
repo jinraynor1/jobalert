@@ -60,8 +60,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
-import com.jobalert.data.model.EmailAccount
-import com.jobalert.oauth.OAuthConfig
+import com.jobalert.domain.model.EmailAccount
+import com.jobalert.domain.model.OAuthConfig
 import com.jobalert.ui.theme.LocalSuccessColor
 import kotlinx.coroutines.launch
 
@@ -75,7 +75,7 @@ fun AccountsScreen() {
     val app = context.applicationContext as JobAlertApp
     val viewModel: AccountsViewModel = viewModel(
         factory = viewModelFactory {
-            initializer { AccountsViewModel(app.emailAccountRepository, app.credentialStore) }
+            initializer { AccountsViewModel(app.emailAccountRepository, app.mailAuthGateway) }
         }
     )
 
@@ -326,7 +326,7 @@ private fun ReauthDialog(account: EmailAccount, onReauth: () -> Unit, onDismiss:
 @Composable
 private fun AccountDialog(
     initialAccount: EmailAccount?,
-    credentialStore: com.jobalert.data.repository.CredentialStore,
+    credentialStore: com.jobalert.data.local.credential.CredentialStore,
     onConfirmPassword: (email: String, password: String?, host: String, port: Int, useSsl: Boolean) -> Unit,
     onLaunchOAuth: (authType: String, email: String, host: String, port: Int, useSsl: Boolean, oauthConfig: OAuthConfig?) -> Unit,
     onDismiss: () -> Unit,

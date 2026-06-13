@@ -2,8 +2,8 @@ package com.jobalert.ui.rules
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jobalert.data.repository.RuleRepository
-import com.jobalert.domain.Rule
+import com.jobalert.domain.model.Rule
+import com.jobalert.domain.repository.RuleRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn

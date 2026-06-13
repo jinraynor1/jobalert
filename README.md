@@ -17,52 +17,70 @@ Aplicación Android que monitorea cuentas de correo IMAP en busca de mensajes qu
 
 ## Arquitectura
 
+Clean Architecture por capas. La regla de dependencias es `ui → domain ← data`; `domain` no depende de nadie.
+
 ```
-┌─────────────────────────────────────────────────────┐
-│                  UI (Jetpack Compose)                │
-│  MainActivity → AppNavigation                        │
-│  ├── AccountsScreen   (+ AccountsViewModel)         │
-│  ├── RulesScreen      (+ RulesViewModel)            │
-│  ├── HistingsScreen   (+ HistoryViewModel)          │
-│  ├── SettingsScreen   (+ SettingsViewModel)         │
-│  └── PermissionsScreen                              │
-└────────────────────┬────────────────────────────────┘
-                     │ StateFlow / collectAsState
-┌────────────────────▼────────────────────────────────┐
-│               Data & Domain                          │
-│  Room (AppDatabase v4)                               │
-│  ├── AlertDao       → AlertRepository               │
-│  ├── RuleDao        → RuleRepository                │
-│  └── EmailAccountDao → EmailAccountRepository       │
-│  SettingsRepository  (SharedPreferences)             │
-│  CredentialStore     (EncryptedSharedPreferences)    │
-└────────────────────┬────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────┐
-│            Background (WorkManager)                  │
-│  EmailPollWorker                                     │
-│  ├── ImapClient          (password accounts)        │
-│  ├── ImapOAuthClient     (OAuth accounts)           │
-│  ├── OAuthTokenManager   (refresh de tokens)        │
-│  ├── RuleEngine          (evaluación de reglas)     │
-│  └── OverlayManager      (TYPE_APPLICATION_OVERLAY) │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    ui (Jetpack Compose)                      │
+│  MainActivity → AppNavigation                                │
+│  ├── accounts/  AccountsScreen  + AccountsViewModel         │
+│  ├── rules/     RulesScreen     + RulesViewModel            │
+│  ├── history/   HistoryScreen   + HistoryViewModel          │
+│  ├── settings/  SettingsScreen  + SettingsViewModel         │
+│  ├── permissions/ PermissionsScreen                         │
+│  └── overlay/   OverlayManager + ServiceLifecycleOwner      │
+└─────────────────────┬───────────────────────────────────────┘
+                      │  interfaces de domain
+┌─────────────────────▼───────────────────────────────────────┐
+│                      domain                                  │
+│  model/   Rule · Alert · EmailAccount · NotificationData    │
+│           OAuthConfig                                        │
+│  repository/  RuleRepository · AlertRepository              │
+│               EmailAccountRepository · SettingsRepository   │
+│               MailAuthGateway                               │
+│  rule/    RuleEngine  (matching puro, sin dependencias)     │
+└─────────────────────┬───────────────────────────────────────┘
+                      │  implementa interfaces de domain
+┌─────────────────────▼───────────────────────────────────────┐
+│                       data                                   │
+│  local/                                                      │
+│  ├── entity/  RuleEntity · AlertEntity · EmailAccountEntity │
+│  ├── db/      AppDatabase · AlertDao · RuleDao              │
+│  │            EmailAccountDao · Converters                  │
+│  └── credential/  CredentialStore · OAuthTokens            │
+│  remote/                                                     │
+│  ├── imap/   ImapClient (password) · ImapOAuthClient (OAuth)│
+│  ├── oauth/  OAuthTokenManager · OAuthClients               │
+│  └── MailAuthGatewayImpl                                    │
+│  mapper/   Mappers.kt  (entity ↔ domain)                   │
+│  repository/  *RepositoryImpl  (implementan interfaces)     │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                   background (WorkManager)                   │
+│  EmailPollWorker                                            │
+└─────────────────────────────────────────────────────────────┘
+
+JobAlertApp (Application) — composition root (DI manual)
 ```
 
 ### Paquetes
 
 | Paquete | Responsabilidad |
 |---------|----------------|
-| `data.db` | Room: entidades, DAOs, migraciones |
-| `data.model` | `EmailAccount`, `AlertEntity` |
-| `data.repository` | Repositorios, `CredentialStore`, `SettingsRepository` |
-| `domain` | `Rule`, `NotificationData` |
-| `rules` | `RuleEngine` — evaluación de reglas |
-| `imap` | `ImapClient` (password), `ImapOAuthClient` (XOAUTH2) |
-| `oauth` | `OAuthTokenManager`, `OAuthConfig` |
-| `overlay` | `OverlayManager`, `ServiceLifecycleOwner` |
-| `work` | `EmailPollWorker` |
-| `ui` | Pantallas Compose + ViewModels |
+| `domain.model` | POJOs puros: `Rule`, `Alert`, `EmailAccount`, `NotificationData`, `OAuthConfig` |
+| `domain.repository` | Interfaces: `RuleRepository`, `AlertRepository`, `EmailAccountRepository`, `SettingsRepository`, `MailAuthGateway` |
+| `domain.rule` | `RuleEngine` — evaluación de reglas (sin dependencias externas) |
+| `data.local.entity` | Entidades Room: `RuleEntity`, `AlertEntity`, `EmailAccountEntity` |
+| `data.local.db` | `AppDatabase`, DAOs, `Converters` |
+| `data.local.credential` | `CredentialStore` (EncryptedSharedPreferences), `OAuthTokens` |
+| `data.remote.imap` | `ImapClient` (password), `ImapOAuthClient` (XOAUTH2), `FetchResult` |
+| `data.remote.oauth` | `OAuthTokenManager`, `OAuthClients` |
+| `data.remote` | `MailAuthGatewayImpl` |
+| `data.mapper` | Funciones `toDomain()` / `toEntity()` |
+| `data.repository` | `*RepositoryImpl` — implementan las interfaces de `domain` |
+| `ui` | Pantallas Compose + ViewModels + `overlay/` |
+| `background` | `EmailPollWorker` |
 
 ---
 
@@ -71,14 +89,14 @@ Aplicación Android que monitorea cuentas de correo IMAP en busca de mensajes qu
 ```
 WorkManager (periódico o one-shot)
   └── EmailPollWorker.doWork()
-        ├── Obtiene cuentas habilitadas y reglas de Room
+        ├── Obtiene cuentas habilitadas y reglas via interfaces de domain
         ├── Para cada cuenta:
         │     ├── [PASSWORD] → CredentialStore.getPassword()
         │     │                → ImapClient.fetchNew()  (android-mail)
         │     └── [OAUTH2]   → OAuthTokenManager.getValidToken()
         │                      → ImapOAuthClient.fetchNew()  (SSL socket directo)
         ├── RuleEngine.match(mensaje, reglas)
-        ├── Si coincide → AlertRepository.insert() + OverlayManager.show()
+        ├── Si coincide → AlertRepository.insert(Alert) + OverlayManager.show()
         └── Actualiza lastSeenUid y uidValidity en Room
 ```
 
@@ -96,13 +114,13 @@ El flujo OAuth usa **AppAuth-Android** (`net.openid:appauth:0.11.1`) para el int
 
 ```
 Usuario toca "Conectar con Gmail"
-  → OAuthTokenManager.buildAuthorizationIntent()
-      → AppAuth fetches discovery document (accounts.google.com)
+  → MailAuthGateway.buildAuthorizationIntent()
+      → OAuthTokenManager fetches discovery document (accounts.google.com)
       → Abre Custom Tab con el authorization URL
   ← Redirect URI interceptado por RedirectUriReceiverActivity
   → AccountsViewModel.handleOAuthResult()
-      → Intercambia code por tokens (AppAuth)
-      → CredentialStore.setOAuthTokens()
+      → Intercambia code por tokens (AppAuth, en el ViewModel)
+      → MailAuthGateway.storeTokensFromResponse()
       → EmailAccountRepository.insert()
 
 En cada ciclo de polling:
@@ -152,7 +170,7 @@ Se usa el mecanismo IMAP UID en lugar de `\Seen` para evitar marcar mensajes com
 
 ---
 
-## Base de datos (Room v4)
+## Base de datos (Room v8)
 
 | Versión | Cambio |
 |---------|--------|
@@ -160,8 +178,11 @@ Se usa el mecanismo IMAP UID en lugar de `\Seen` para evitar marcar mensajes com
 | 2→3 | Tabla `email_accounts` |
 | 3→4 | `email_accounts.authType`, `email_accounts.oauthConfig` |
 | 4→5 | `email_accounts.needsReauth` |
+| 5→6 | `rules.alertColor` |
+| 6→7 | Recreación de tabla `rules` (agrega campo `name`) |
+| 7→8 | `alerts.ruleName`, `rules.position` |
 
-Las migraciones son aditivas (`ALTER TABLE`) — nunca se recrea una tabla con datos.
+Las migraciones son aditivas (`ALTER TABLE`) — nunca se recrea una tabla con datos (excepción: 6→7 por incompatibilidad de esquema previo).
 
 ---
 
@@ -178,7 +199,7 @@ El worker devuelve `KEY_NEW_COUNT` en `outputData` al terminar. El `AccountsView
 
 ## Overlay
 
-`OverlayManager` usa `TYPE_APPLICATION_OVERLAY` (requiere permiso `SYSTEM_ALERT_WINDOW`) para mostrar una pantalla roja de pantalla completa sobre cualquier app. Internamente usa un `ComposeView` con un `ServiceLifecycleOwner` propio para satisfacer el ciclo de vida requerido por Compose fuera de una `Activity`.
+`OverlayManager` usa `TYPE_APPLICATION_OVERLAY` (requiere permiso `SYSTEM_ALERT_WINDOW`) para mostrar una pantalla de pantalla completa sobre cualquier app. Internamente usa un `ComposeView` con un `ServiceLifecycleOwner` propio para satisfacer el ciclo de vida requerido por Compose fuera de una `Activity`.
 
 Si llega una segunda alerta mientras el overlay está visible, se encola y se muestra al presionar "Atendido".
 
@@ -239,12 +260,12 @@ adb logcat -s JobAlert-Worker,JobAlert-OAuth,JobAlert-ImapOAuth,JobAlert-IMAP
 2. Activar la API Gmail
 3. Crear credencial OAuth → Tipo: **Android** → ingresar package name y SHA-1 del keystore de debug
 4. Habilitar scope `https://mail.google.com/` en la pantalla de consentimiento
-5. Copiar el Client ID al campo `GOOGLE_CLIENT_ID` en `OAuthTokenManager.kt`
+5. Copiar el Client ID al campo `GOOGLE_CLIENT_ID` en `data/remote/oauth/OAuthTokenManager.kt`
 6. En Gmail del usuario: **Configuración → Reenvío y POP/IMAP → Habilitar IMAP**
 
 ### Microsoft OAuth
 
-Registrar la app en Azure Portal y reemplazar `TODO_AZURE_CLIENT_ID` en `OAuthTokenManager.kt`.
+Registrar la app en Azure Portal y reemplazar `TODO_AZURE_CLIENT_ID` en `data/remote/oauth/OAuthTokenManager.kt`.
 
 ### Build
 

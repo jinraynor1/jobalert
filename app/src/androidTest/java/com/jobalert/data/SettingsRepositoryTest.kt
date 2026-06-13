@@ -2,7 +2,7 @@ package com.jobalert.data
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jobalert.data.repository.SettingsRepository
+import com.jobalert.data.repository.SettingsRepositoryImpl
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -11,11 +11,11 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class SettingsRepositoryTest {
-    private lateinit var repo: SettingsRepository
+    private lateinit var repo: SettingsRepositoryImpl
 
     @Before
     fun setup() {
-        repo = SettingsRepository(ApplicationProvider.getApplicationContext())
+        repo = SettingsRepositoryImpl(ApplicationProvider.getApplicationContext())
         repo.muteUntil = 0L
     }
 

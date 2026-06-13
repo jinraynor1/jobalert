@@ -10,14 +10,20 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.jobalert.data.db.AppDatabase
-import com.jobalert.data.repository.AlertRepository
-import com.jobalert.data.repository.CredentialStore
-import com.jobalert.data.repository.EmailAccountRepository
-import com.jobalert.data.repository.RuleRepository
-import com.jobalert.data.repository.SettingsRepository
-import com.jobalert.overlay.OverlayManager
-import com.jobalert.work.EmailPollWorker
+import com.jobalert.background.EmailPollWorker
+import com.jobalert.data.local.credential.CredentialStore
+import com.jobalert.data.local.db.AppDatabase
+import com.jobalert.data.remote.MailAuthGatewayImpl
+import com.jobalert.data.repository.AlertRepositoryImpl
+import com.jobalert.data.repository.EmailAccountRepositoryImpl
+import com.jobalert.data.repository.RuleRepositoryImpl
+import com.jobalert.data.repository.SettingsRepositoryImpl
+import com.jobalert.domain.repository.AlertRepository
+import com.jobalert.domain.repository.EmailAccountRepository
+import com.jobalert.domain.repository.MailAuthGateway
+import com.jobalert.domain.repository.RuleRepository
+import com.jobalert.domain.repository.SettingsRepository
+import com.jobalert.ui.overlay.OverlayManager
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,12 +93,13 @@ class JobAlertApp : Application() {
     }
 
     val database by lazy { AppDatabase.getInstance(this) }
-    val alertRepository by lazy { AlertRepository(database.alertDao()) }
-    val ruleRepository by lazy { RuleRepository(database.ruleDao()) }
-    val settingsRepository by lazy { SettingsRepository(this) }
-    val overlayManager by lazy { OverlayManager(this, settingsRepository) }
     val credentialStore by lazy { CredentialStore(this) }
-    val emailAccountRepository by lazy {
-        EmailAccountRepository(database.emailAccountDao(), credentialStore)
+    val alertRepository: AlertRepository by lazy { AlertRepositoryImpl(database.alertDao()) }
+    val ruleRepository: RuleRepository by lazy { RuleRepositoryImpl(database.ruleDao()) }
+    val settingsRepository: SettingsRepository by lazy { SettingsRepositoryImpl(this) }
+    val overlayManager by lazy { OverlayManager(this, settingsRepository) }
+    val emailAccountRepository: EmailAccountRepository by lazy {
+        EmailAccountRepositoryImpl(database.emailAccountDao(), credentialStore)
     }
+    val mailAuthGateway: MailAuthGateway by lazy { MailAuthGatewayImpl(credentialStore) }
 }
