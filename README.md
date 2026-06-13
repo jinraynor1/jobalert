@@ -1,5 +1,8 @@
 # JobAlert
 
+[![CI](https://github.com/jinraynor1/jobalert/actions/workflows/ci.yml/badge.svg)](https://github.com/jinraynor1/jobalert/actions/workflows/ci.yml)
+[![Tests instrumentados](https://github.com/jinraynor1/jobalert/actions/workflows/instrumented-tests.yml/badge.svg)](https://github.com/jinraynor1/jobalert/actions/workflows/instrumented-tests.yml)
+
 Aplicación Android que monitorea cuentas de correo IMAP en busca de mensajes que coincidan con reglas configuradas por el usuario, mostrando una alerta visual de pantalla completa cuando hay coincidencia.
 
 ## Funcionalidad

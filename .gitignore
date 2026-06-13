@@ -4,3 +4,10 @@ local.properties
 *.iml
 .idea/
 build-output.log
+
+# Firma de release — NUNCA commitear keystores.
+# El keystore de release es la identidad de la app en Google Play.
+# Pásalo a CI como secret en base64 (ver docs/CICD.md).
+*.jks
+*.keystore
+keystore.properties

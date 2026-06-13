@@ -18,10 +18,38 @@ android {
         manifestPlaceholders["appAuthRedirectScheme"] = "com.jobalert"
     }
 
+    // ── Firma de release ────────────────────────────────────────────────────
+    // En CI (workflow release.yml) las variables de entorno KEYSTORE_* se
+    // inyectan desde los secrets del repositorio.
+    // En local (debug) estas variables no existen → el bloque se omite y el
+    // build de debug sigue funcionando sin keystore de release.
+    //
+    // Para firmar en local: exporta las variables antes de correr gradle:
+    //   $env:KEYSTORE_FILE="ruta/release.jks"
+    //   $env:KEYSTORE_PASSWORD="..."
+    //   $env:KEY_ALIAS="jobalert"
+    //   $env:KEY_PASSWORD="..."
+    val keystoreFile: String? = System.getenv("KEYSTORE_FILE")
+
+    if (keystoreFile != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystoreFile)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Solo aplica signingConfig si el keystore fue provisto (en CI).
+            if (keystoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

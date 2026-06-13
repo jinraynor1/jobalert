@@ -1,0 +1,116 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Fase 3 — CD: release firmado + GitHub Release
+#
+# ¿Qué hace este workflow?
+#   Cuando creas un tag que empieza por 'v' (ej: v1.0.0, v2.3.1-beta),
+#   este workflow:
+#     1. Compila el APK de release.
+#     2. Lo firma con el keystore de producción (almacenado como secret).
+#     3. Crea automáticamente un GitHub Release con el APK adjunto.
+#
+# CI vs CD — la diferencia clave:
+#   CI (Integración Continua): ejecutar validaciones en cada cambio de código.
+#      → Workflows ci.yml e instrumented-tests.yml
+#   CD (Entrega Continua): automatizar la publicación de versiones.
+#      → Este workflow
+#
+# ¿Qué es un 'tag' de Git?
+#   Un tag es una referencia inmutable a un commit específico. Convención:
+#   se usa para marcar versiones de software (semver: v1.0.0, v1.2.3, etc.).
+#   `git tag v1.0.0 && git push origin v1.0.0`
+#
+# ── Cómo configurar los secrets de firma ────────────────────────────────────
+#
+# Prerequisito: generar un keystore de release (una sola vez):
+#   keytool -genkeypair -v -keystore release.jks -keyalg RSA -keysize 2048 \
+#           -validity 10000 -alias jobalert
+#   IMPORTANTE: guarda esta contraseña de forma segura. Sin ella no podrás
+#               firmar futuras actualizaciones de la misma app.
+#
+# Convertir el keystore a base64 (para pasarlo como secret de texto):
+#   base64 -w 0 release.jks   ← Linux/Mac
+#   [Convert]::ToBase64String([IO.File]::ReadAllBytes("release.jks")) ← PowerShell
+#
+# En GitHub → Settings → Secrets and variables → Actions → New repository secret:
+#   KEYSTORE_BASE64    → el resultado del base64 del .jks
+#   KEYSTORE_PASSWORD  → contraseña del keystore (la que pusiste en keytool)
+#   KEY_ALIAS          → alias de la clave (ej: "jobalert")
+#   KEY_PASSWORD       → contraseña de la clave (puede ser igual al keystore)
+#
+# ¿Por qué secrets y no commitear el keystore?
+#   El keystore de release es la IDENTIDAD de tu app en Google Play.
+#   Si alguien lo roba puede publicar versiones maliciosas de tu app con
+#   tu firma. Los secrets de GitHub Actions están encriptados en reposo
+#   y solo se inyectan en el runner durante la ejecución — nunca aparecen
+#   en logs ni en el código.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Release
+
+on:
+  # Se dispara SOLO al pushear un tag que empiece con 'v'.
+  # Los pushes de commits normales NO activan este workflow.
+  push:
+    tags:
+      - 'v*'
+
+# El permiso 'contents: write' es necesario para crear GitHub Releases.
+# Por defecto los workflows solo tienen permiso de lectura.
+permissions:
+  contents: write
+
+jobs:
+
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # ── Decodificar el keystore ───────────────────────────────────────────
+      # El keystore se almacena en base64 en el secret KEYSTORE_BASE64.
+      # Lo decodificamos a un archivo temporal en el runner.
+      # '${{ secrets.X }}' es la sintaxis para leer secrets en un workflow.
+      # El archivo se guarda en $HOME para que el path sea predecible.
+      - name: Decodificar keystore de release
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $HOME/release.jks
+          echo "KEYSTORE_FILE=$HOME/release.jks" >> $GITHUB_ENV
+
+      # ── Compilar y firmar el APK de release ──────────────────────────────
+      # Las variables de entorno KEYSTORE_* las lee app/build.gradle.kts
+      # en el bloque signingConfigs. Ver comentario en ese archivo.
+      # Si los secrets no están configurados, la variable KEYSTORE_FILE
+      # estará vacía y el build.gradle.kts salta el signingConfig (APK sin firmar).
+      - name: Compilar APK de release firmado
+        env:
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      # ── Crear el GitHub Release ───────────────────────────────────────────
+      # 'softprops/action-gh-release' es la Action más usada para crear releases.
+      # Usa el GITHUB_TOKEN automático (no necesitas crear un secret extra).
+      # El Release se crea con el nombre del tag (ej: "v1.0.0") y el APK
+      # como archivo adjunto.
+      - name: Crear GitHub Release con el APK
+        uses: softprops/action-gh-release@v2
+        with:
+          # Los archivos a adjuntar al Release.
+          files: app/build/outputs/apk/release/app-release.apk
+          # Si el tag es 'v1.0.0-beta' etc., lo marca como pre-release.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          # Genera automáticamente las release notes a partir de los commits
+          # desde el tag anterior. Requiere que el repo tenga historial de tags.
+          generate_release_notes: true

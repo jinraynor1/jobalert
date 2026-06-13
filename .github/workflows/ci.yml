@@ -1,0 +1,106 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Fase 1 — CI básico
+#
+# ¿Qué hace este workflow?
+#   Cada vez que haces push a 'master' o abres/actualizas una Pull Request,
+#   GitHub Actions:
+#     1. Descarga el código.
+#     2. Valida la integridad del Gradle wrapper.
+#     3. Instala JDK 17.
+#     4. Corre lint + tests unitarios JVM + compila el APK de debug.
+#     5. Sube los reportes y el APK como artefactos descargables.
+#
+# ¿Por qué es útil?
+#   Detectas errores de compilación, tests rotos y problemas de lint en segundos,
+#   sin tener que recordar correr los comandos a mano en cada cambio.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+# 'on' define qué eventos disparan el workflow.
+on:
+  # Se ejecuta al hacer push a la rama master.
+  push:
+    branches: [ master ]
+  # Se ejecuta al abrir o actualizar cualquier Pull Request hacia master.
+  pull_request:
+    branches: [ master ]
+
+# Un workflow se compone de uno o más 'jobs' que corren en paralelo por defecto.
+jobs:
+
+  build-and-test:
+    # El runner: la máquina virtual donde corre el job.
+    # 'ubuntu-latest' es el runner gratuito de Linux más actual disponible.
+    runs-on: ubuntu-latest
+
+    # 'steps' son los pasos secuenciales del job.
+    steps:
+
+      # ── Paso 1: Descargar el código ──────────────────────────────────────
+      # 'uses' ejecuta una Action publicada. Aquí clonamos el repo en el runner.
+      # '@v4' es el tag de versión — siempre fija versiones de Actions para
+      # evitar cambios inesperados o ataques de supply-chain.
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # ── Paso 2: Validar el Gradle Wrapper ────────────────────────────────
+      # El archivo 'gradle/wrapper/gradle-wrapper.jar' es un JAR binario
+      # commiteado en el repo. Si alguien lo reemplaza con código malicioso,
+      # este paso falla porque compara el hash SHA-256 contra una lista
+      # conocida y segura. Lección: valida siempre lo que ejecutas en CI.
+      - name: Validar Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      # ── Paso 3: Instalar JDK 17 ──────────────────────────────────────────
+      # AGP 8.2 requiere JDK 17. Usamos la distribución 'temurin' (Eclipse
+      # Adoptium) porque es open-source, estable y ampliamente usada.
+      # 'cache: gradle' le dice al step que cachée la caché de Gradle
+      # (~/.gradle/caches) entre runs — ahorra varios minutos de descarga
+      # de dependencias en cada ejecución.
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # ── Paso 4: Build, lint y tests ──────────────────────────────────────
+      # 'run' ejecuta comandos shell directamente en el runner.
+      # --no-daemon: En CI es buena práctica desactivar el daemon de Gradle.
+      #   El daemon mantiene la JVM caliente entre builds, lo cual es útil
+      #   en local pero en CI cada job empieza limpio y el daemon no
+      #   beneficia nada — al contrario, consume RAM innecesariamente.
+      #
+      # :app:lintDebug    → analiza el código buscando problemas (deprecaciones,
+      #                      usos incorrectos de API, etc.). abortOnError=true
+      #                      (el default) hace que el build falle si hay errores.
+      # :app:testDebugUnitTest → tests JVM puros: RuleEngineTest, OAuthTokenManagerTest,
+      #                          ImapClientSessionTest, OAuthTokensSerializationTest.
+      #                          No requieren dispositivo ni emulador.
+      # :app:assembleDebug → compila y empaqueta el APK de debug.
+      #
+      # El orden importa: lint y tests primero — si fallan, no pierdas tiempo
+      # en el assembleDebug.
+      - name: Lint + Tests unitarios + Build debug
+        run: ./gradlew --no-daemon :app:lintDebug :app:testDebugUnitTest :app:assembleDebug
+
+      # ── Paso 5: Subir artefactos ─────────────────────────────────────────
+      # 'if: always()' hace que este paso corra incluso si el paso anterior falló.
+      # Así puedes descargar los reportes de test/lint para diagnósticar el fallo,
+      # no solo ver la salida de consola.
+      #
+      # Los artefactos quedan disponibles en la pestaña "Artifacts" de cada
+      # ejecución del workflow durante 30 días por defecto.
+      - name: Subir reportes y APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-outputs
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results-debug.html
+            app/build/outputs/apk/debug/app-debug.apk
+          # Si no se generó ningún archivo (ej. el build falló antes de lint)
+          # no falla el paso de upload.
+          if-no-files-found: warn

@@ -1,0 +1,122 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Fase 2 — Tests instrumentados en emulador Android
+#
+# ¿Qué hace este workflow?
+#   Levanta un emulador Android real dentro del runner de CI y corre los tests
+#   instrumentados del proyecto:
+#     - Migration3To4Test / Migration4To5Test / Migration7To8Test  (Room)
+#     - AlertDaoTest                                               (Room DAO)
+#     - SettingsRepositoryTest
+#
+# ¿Por qué un workflow separado del CI básico?
+#   Los tests instrumentados tardan 5–10 minutos más (el emulador tarda en
+#   arrancar). Al tener un workflow separado, los dos corren EN PARALELO:
+#   la Fase 1 da feedback rápido (build/lint/unit-tests) mientras la Fase 2
+#   valida las migraciones de base de datos en segundo plano.
+#
+# ¿Por qué necesitan emulador?
+#   Los tests instrumentados usan 'InstrumentationRegistry', Room 'MigrationTestHelper'
+#   y SQLite real de Android — nada de eso existe en la JVM. Necesitan correr
+#   dentro de un proceso de Android (en un dispositivo o emulador).
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Tests instrumentados
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  instrumented:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # ── KVM: aceleración de hardware para el emulador ────────────────────
+      # Los runners de GitHub Actions en Linux soportan KVM (Kernel-based
+      # Virtual Machine). Sin KVM, el emulador corre en modo software (QEMU
+      # puro) y puede tardar 10x más o directamente crashear.
+      # Este paso habilita KVM añadiendo una regla udev que da acceso al
+      # dispositivo /dev/kvm al usuario del runner.
+      # Aprende más: https://github.com/ReactiveCircus/android-emulator-runner
+      - name: Habilitar KVM para el emulador
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # ── Cachear el AVD (Android Virtual Device) ──────────────────────────
+      # Crear y cold-bootear un emulador tarda ~3 minutos.
+      # Guardamos el snapshot del AVD en caché por API level para reutilizarlo
+      # en runs siguientes — la primera ejecución es lenta, las siguientes no.
+      #
+      # La key incluye el api-level para que al cambiar de API el caché
+      # se invalide automáticamente.
+      - name: Cachear snapshot del AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api26-${{ runner.os }}
+
+      # ── Crear el AVD (solo si no está en caché) ──────────────────────────
+      # 'if: steps.avd-cache.outputs.cache-hit != 'true'' evita recrearlo
+      # si ya está en caché. La Action android-emulator-runner puede crear
+      # el AVD en modo headless para eso.
+      - name: Crear AVD (si no hay caché)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          # api-level: usamos 26 (= minSdk del proyecto). Testear en el mínimo
+          # soportado es la estrategia más conservadora: si funciona en API 26
+          # funcionará en versiones superiores. Alternativa: usar 34 para
+          # detectar regresiones en Android moderno (considera añadir una
+          # matrix después).
+          api-level: 26
+          arch: x86_64
+          target: default
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # En modo de creación de caché, el script solo verifica que el
+          # emulador arranca; los tests reales van en el siguiente paso.
+          script: echo "AVD listo y en caché"
+
+      # ── Correr los tests instrumentados ──────────────────────────────────
+      # android-emulator-runner levanta el emulador, espera a que esté listo
+      # (boot completado, adb conectado) y luego ejecuta el 'script'.
+      # Cuando el script termina, apaga el emulador.
+      - name: Correr tests instrumentados
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 26
+          arch: x86_64
+          target: default
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
+
+      # ── Subir reportes ───────────────────────────────────────────────────
+      - name: Subir reportes de tests instrumentados
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instrumented-test-reports
+          path: app/build/reports/androidTests/
+          if-no-files-found: warn
