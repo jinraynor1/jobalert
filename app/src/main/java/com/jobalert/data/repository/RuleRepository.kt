@@ -9,9 +9,13 @@ class RuleRepository(private val dao: RuleDao) {
 
     suspend fun getAllRulesOnce(): List<Rule> = dao.getAllRulesOnce()
 
+    suspend fun maxPosition(): Int = dao.maxPosition()
+
     suspend fun insert(rule: Rule): Long = dao.insert(rule)
 
     suspend fun update(rule: Rule) = dao.update(rule)
+
+    suspend fun updateAll(rules: List<Rule>) = dao.updateAll(rules)
 
     suspend fun setEnabled(id: Long, enabled: Boolean) = dao.setEnabled(id, enabled)
 

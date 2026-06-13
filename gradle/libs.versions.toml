@@ -15,6 +15,7 @@ work = "2.9.1"
 security = "1.1.0-alpha06"
 mail = "1.6.7"
 appauth = "0.11.1"
+reorderable = "2.0.0"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -43,6 +44,7 @@ security-crypto = { group = "androidx.security", name = "security-crypto", versi
 mail-android = { group = "com.sun.mail", name = "android-mail", version.ref = "mail" }
 mail-activation = { group = "com.sun.mail", name = "android-activation", version.ref = "mail" }
 appauth = { group = "net.openid", name = "appauth", version.ref = "appauth" }
+reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

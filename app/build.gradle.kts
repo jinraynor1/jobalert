@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.mail.android)
     implementation(libs.mail.activation)
     implementation(libs.appauth)
+    implementation(libs.reorderable)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

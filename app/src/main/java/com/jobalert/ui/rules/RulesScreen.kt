@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.jobalert.ui.rules
 
 import androidx.compose.foundation.background
@@ -16,10 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -33,6 +37,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +55,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jobalert.JobAlertApp
 import com.jobalert.domain.Rule
 import com.jobalert.ui.theme.LocalAlertColor
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private val RULE_COLOR_PRESETS: List<Int?> = listOf(
     null,
@@ -70,9 +77,17 @@ fun RulesScreen() {
     )
 
     val rules by viewModel.rules.collectAsState()
+    var ordered by remember { mutableStateOf(rules) }
+    LaunchedEffect(rules) { ordered = rules }
+
     var showAddDialog by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<Rule?>(null) }
     var ruleToDelete by remember { mutableStateOf<Rule?>(null) }
+
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        ordered = ordered.toMutableList().apply { add(to.index, removeAt(from.index)) }
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -81,7 +96,7 @@ fun RulesScreen() {
             }
         }
     ) { padding ->
-        if (rules.isEmpty()) {
+        if (ordered.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
@@ -91,16 +106,29 @@ fun RulesScreen() {
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
+                state = lazyListState,
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(rules, key = { it.id }) { rule ->
-                    RuleCard(
-                        rule = rule,
-                        onToggle = { viewModel.setRuleEnabled(rule.id, it) },
-                        onEdit = { editingRule = rule },
-                        onDelete = { ruleToDelete = rule }
-                    )
+                items(ordered, key = { it.id }) { rule ->
+                    ReorderableItem(reorderableState, key = rule.id) {
+                        RuleCard(
+                            rule = rule,
+                            dragHandle = {
+                                Icon(
+                                    imageVector = Icons.Default.DragHandle,
+                                    contentDescription = "Reordenar",
+                                    modifier = Modifier
+                                        .draggableHandle(onDragStopped = { viewModel.persistOrder(ordered) })
+                                        .padding(horizontal = 4.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            onToggle = { viewModel.setRuleEnabled(rule.id, it) },
+                            onEdit = { editingRule = rule },
+                            onDelete = { ruleToDelete = rule }
+                        )
+                    }
                 }
             }
         }
@@ -149,16 +177,18 @@ fun RulesScreen() {
 @Composable
 private fun RuleCard(
     rule: Rule,
+    dragHandle: @Composable () -> Unit,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            dragHandle()
             val dotColor = rule.alertColor?.let { Color(it) } ?: LocalAlertColor.current
             Box(
                 modifier = Modifier

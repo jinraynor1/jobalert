@@ -172,10 +172,19 @@ private fun AlertHistoryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    dateFormat.format(Date(alert.timestamp)),
-                    style = MaterialTheme.typography.labelSmall
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        dateFormat.format(Date(alert.timestamp)),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    if (alert.ruleName.isNotBlank()) {
+                        Text(
+                            " · ${alert.ruleName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (alert.acknowledged) "Atendida" else "Pendiente",

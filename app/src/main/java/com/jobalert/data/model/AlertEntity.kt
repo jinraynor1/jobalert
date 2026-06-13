@@ -10,5 +10,6 @@ data class AlertEntity(
     val sender: String,
     val subject: String,
     val snippet: String,
-    val acknowledged: Boolean = false
+    val acknowledged: Boolean = false,
+    val ruleName: String = ""
 )

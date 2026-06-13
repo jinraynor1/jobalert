@@ -15,7 +15,8 @@ class RulesViewModel(private val repository: RuleRepository) : ViewModel() {
 
     fun addRule(name: String, senders: List<String>, subjectKeywords: List<String>, bodyKeywords: List<String>, alertColor: Int? = null) {
         viewModelScope.launch {
-            repository.insert(Rule(name = name, senders = senders, subjectKeywords = subjectKeywords, bodyKeywords = bodyKeywords, alertColor = alertColor))
+            val position = repository.maxPosition() + 1
+            repository.insert(Rule(name = name, senders = senders, subjectKeywords = subjectKeywords, bodyKeywords = bodyKeywords, alertColor = alertColor, position = position))
         }
     }
 
@@ -31,5 +32,11 @@ class RulesViewModel(private val repository: RuleRepository) : ViewModel() {
 
     fun deleteRule(rule: Rule) {
         viewModelScope.launch { repository.delete(rule) }
+    }
+
+    fun persistOrder(reordered: List<Rule>) {
+        viewModelScope.launch {
+            repository.updateAll(reordered.mapIndexed { index, rule -> rule.copy(position = index) })
+        }
     }
 }

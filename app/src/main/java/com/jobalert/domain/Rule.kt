@@ -11,5 +11,6 @@ data class Rule(
     val subjectKeywords: List<String>,
     val bodyKeywords: List<String>,
     val isEnabled: Boolean = true,
-    val alertColor: Int? = null   // ARGB; null = color del tema
+    val alertColor: Int? = null,  // ARGB; null = color del tema
+    val position: Int = 0
 )

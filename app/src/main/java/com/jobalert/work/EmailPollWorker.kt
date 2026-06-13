@@ -66,7 +66,8 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
                             timestamp = System.currentTimeMillis(),
                             sender = data.sender,
                             subject = data.subject,
-                            snippet = data.snippet
+                            snippet = data.snippet,
+                            ruleName = matchedRule.name
                         )
                     )
                     val s = app.settingsRepository
