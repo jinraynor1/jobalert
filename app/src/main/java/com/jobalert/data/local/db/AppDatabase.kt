@@ -11,7 +11,7 @@ import com.jobalert.data.local.entity.AlertEntity
 import com.jobalert.data.local.entity.EmailAccountEntity
 import com.jobalert.data.local.entity.RuleEntity
 
-@Database(entities = [AlertEntity::class, RuleEntity::class, EmailAccountEntity::class], version = 8, exportSchema = false)
+@Database(entities = [AlertEntity::class, RuleEntity::class, EmailAccountEntity::class], version = 8, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun alertDao(): AlertDao

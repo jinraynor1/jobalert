@@ -78,6 +78,21 @@ android {
             "META-INF/LICENSE"
         )
     }
+
+    // Incluye app/schemas/ como directorio de assets en los tests instrumentados.
+    // MigrationTestHelper busca los JSON de esquema en los assets del APK de test,
+    // bajo la ruta: com.jobalert.data.local.db.AppDatabase/<version>.json
+    sourceSets {
+        getByName("androidTest").assets.srcDirs("schemas")
+    }
+}
+
+// Room exporta el JSON del esquema actual (v8) a app/schemas/ durante el build.
+// Los JSON de versiones históricas (3, 4, 5, 7) están commiteados manualmente.
+kapt {
+    arguments {
+        arg("room.schemaLocation", "${projectDir}/schemas")
+    }
 }
 
 dependencies {
