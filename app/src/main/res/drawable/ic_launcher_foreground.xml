@@ -4,8 +4,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Triángulo de alerta relleno en blanco -->
     <path
-        android:strokeColor="#FFFFFF"
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 L90,82 L18,82 Z"/>
+    <!-- Cuerpo del signo de exclamación -->
+    <path
+        android:strokeColor="#CC0000"
         android:strokeWidth="8"
-        android:pathData="M54,30 L54,78 M30,54 L78,54" />
+        android:strokeLineCap="round"
+        android:pathData="M54,40 L54,64"/>
+    <!-- Punto del signo de exclamación -->
+    <path
+        android:strokeColor="#CC0000"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M54,73 L54,74"/>
 </vector>
