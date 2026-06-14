@@ -66,7 +66,7 @@ internal object ImapOAuthClient {
 
             // XOAUTH2 payload: "user=<email>\x01auth=Bearer <token>\x01\x01" base64-encoded.
             // Sent as an initial response in the AUTHENTICATE command (avoids an extra round-trip).
-            val xoauthPayload = "user=${account.email}auth=Bearer $accessToken"
+            val xoauthPayload = "user=${account.email}auth=Bearer $accessToken"
             val b64 = Base64.encodeToString(xoauthPayload.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
             val authTag = tag()
             send("$authTag AUTHENTICATE XOAUTH2 $b64")
