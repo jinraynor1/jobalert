@@ -3,6 +3,9 @@ package com.jobalert
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import androidx.core.app.NotificationCompat
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -23,19 +26,28 @@ import com.jobalert.domain.repository.EmailAccountRepository
 import com.jobalert.domain.repository.MailAuthGateway
 import com.jobalert.domain.repository.RuleRepository
 import com.jobalert.domain.repository.SettingsRepository
+import com.jobalert.ui.MainActivity
 import com.jobalert.ui.overlay.OverlayManager
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class JobAlertApp : Application() {
 
     companion object {
         const val CHANNEL_ID = "jobalert_service"
+        const val BADGE_CHANNEL_ID = "jobalert_badge"
+        const val BADGE_NOTIFICATION_ID = 0xBAD9E
         private const val WORK_NAME = "email_poll"
         const val SCAN_NOW_WORK = "email_poll_now"
     }
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val _darkMode = MutableStateFlow(false)
     val darkMode: StateFlow<Boolean> = _darkMode.asStateFlow()
@@ -48,17 +60,49 @@ class JobAlertApp : Application() {
         _darkMode.value = settingsRepository.darkMode
         createNotificationChannel()
         schedulePolling()
+        appScope.launch {
+            alertRepository.unacknowledgedCount.collect { count -> updatePendingBadge(count) }
+        }
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "JobAlert",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Notificaciones de JobAlert"
-        }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, "JobAlert", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Notificaciones de JobAlert"
+            }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(BADGE_CHANNEL_ID, "Alertas pendientes", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Muestra el número de alertas sin revisar"
+                setShowBadge(true)
+            }
+        )
+    }
+
+    private fun updatePendingBadge(count: Int) {
+        val nm = getSystemService(NotificationManager::class.java)
+        if (count <= 0) { nm.cancel(BADGE_NOTIFICATION_ID); return }
+
+        val pi = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val text = if (count == 1) "1 alerta pendiente por revisar"
+                   else "$count alertas pendientes por revisar"
+        val notification = NotificationCompat.Builder(this, BADGE_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("JobAlert")
+            .setContentText(text)
+            .setNumber(count)
+            .setContentIntent(pi)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .build()
+        nm.notify(BADGE_NOTIFICATION_ID, notification)
     }
 
     private fun schedulePolling() {

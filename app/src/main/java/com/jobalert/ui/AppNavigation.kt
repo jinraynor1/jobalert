@@ -7,21 +7,26 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.jobalert.JobAlertApp
 import com.jobalert.ui.accounts.AccountsScreen
 import com.jobalert.ui.history.HistoryScreen
 import com.jobalert.ui.permissions.PermissionsScreen
@@ -44,12 +49,25 @@ fun AppNavigation() {
     val navBackStack by navController.currentBackStackEntryAsState()
     val current = navBackStack?.destination
 
+    val app = LocalContext.current.applicationContext as JobAlertApp
+    val pendingCount by app.alertRepository.unacknowledgedCount.collectAsState(initial = 0)
+
     Scaffold(
         bottomBar = {
             NavigationBar {
                 screens.forEach { screen ->
                     NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.label) },
+                        icon = {
+                            if (screen == Screen.History && pendingCount > 0) {
+                                BadgedBox(badge = {
+                                    Badge { Text(if (pendingCount > 99) "99+" else "$pendingCount") }
+                                }) {
+                                    Icon(screen.icon, contentDescription = screen.label)
+                                }
+                            } else {
+                                Icon(screen.icon, contentDescription = screen.label)
+                            }
+                        },
                         label = { Text(screen.label) },
                         selected = current?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
