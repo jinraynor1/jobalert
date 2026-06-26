@@ -36,7 +36,7 @@ All repositories and services are instantiated as `lazy` properties on `JobAlert
 
 ```
 JobAlertApp (Application) — composition root
-  ├── AppDatabase (Room v8)       ← data.local.db
+  ├── AppDatabase (Room v9)       ← data.local.db
   ├── AlertRepository             ← interface in domain, impl in data.repository
   ├── RuleRepository              ← interface in domain, impl in data.repository
   ├── EmailAccountRepository      ← interface in domain, impl in data.repository
@@ -128,6 +128,7 @@ All migrations are additive `ALTER TABLE` — never drop/recreate tables with da
 | 5→6 | `rules.alertColor` |
 | 6→7 | Recreación de tabla `rules` (agrega campo `name`) |
 | 7→8 | `alerts.ruleName`, `rules.position` |
+| 8→9 | `email_accounts.lastSyncError` |
 
 The Room entity classes are `RuleEntity`, `AlertEntity`, `EmailAccountEntity` in `data.local.entity`. The domain model classes (`Rule`, `Alert`, `EmailAccount`) in `domain.model` have no Room annotations. Mappers in `data.mapper.Mappers` convert between the two.
 

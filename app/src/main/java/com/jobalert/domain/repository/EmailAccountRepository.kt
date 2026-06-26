@@ -12,4 +12,5 @@ interface EmailAccountRepository {
     suspend fun delete(account: EmailAccount)
     suspend fun updateUidState(id: Long, lastSeenUid: Long, uidValidity: Long)
     suspend fun setNeedsReauth(id: Long, value: Boolean)
+    suspend fun setLastSyncError(id: Long, error: String?)
 }

@@ -16,5 +16,6 @@ data class EmailAccountEntity(
     val uidValidity: Long = 0,
     val authType: String = "PASSWORD",  // PASSWORD | OAUTH2_GOOGLE | OAUTH2_MICROSOFT | OAUTH2_CUSTOM
     val oauthConfig: String? = null,    // JSON-encoded OAuthConfig, only for OAUTH2_CUSTOM
-    val needsReauth: Boolean = false    // true when the OAuth token could not be refreshed
+    val needsReauth: Boolean = false,   // true when the OAuth token could not be refreshed
+    val lastSyncError: String? = null   // non-null when the last poll had a connection/protocol error
 )

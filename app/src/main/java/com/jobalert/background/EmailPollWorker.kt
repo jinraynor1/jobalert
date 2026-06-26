@@ -53,8 +53,18 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
                 ImapClient.fetchNew(account, credential, app.settingsRepository.snippetMaxChars)
             }
 
-            if (fetchResult.error != null) {
-                Log.w(TAG, "[${account.email}] Fetch error: ${fetchResult.error}")
+            when {
+                fetchResult.authFailed -> {
+                    Log.w(TAG, "[${account.email}] Auth rejected by server — marking needsReauth")
+                    notifyReauthRequired(account.email)
+                    app.emailAccountRepository.setNeedsReauth(account.id, true)
+                    app.emailAccountRepository.setLastSyncError(account.id, null)
+                }
+                fetchResult.error != null -> {
+                    Log.w(TAG, "[${account.email}] Connection/protocol error: ${fetchResult.error}")
+                    notifyConnectionError(account.email, fetchResult.error)
+                    app.emailAccountRepository.setLastSyncError(account.id, fetchResult.error)
+                }
             }
 
             Log.i(TAG, "[${account.email}] Fetched ${fetchResult.messages.size} message(s) — lastSeenUid=${fetchResult.newLastSeenUid}, uidValidity=${fetchResult.uidValidity}")
@@ -93,8 +103,11 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
                 fetchResult.newLastSeenUid,
                 fetchResult.uidValidity
             )
-            if (account.needsReauth && fetchResult.error == null) {
-                app.emailAccountRepository.setNeedsReauth(account.id, false)
+            if (fetchResult.error == null) {
+                if (account.needsReauth)
+                    app.emailAccountRepository.setNeedsReauth(account.id, false)
+                if (account.lastSyncError != null)
+                    app.emailAccountRepository.setLastSyncError(account.id, null)
             }
         }
 
@@ -118,5 +131,24 @@ class EmailPollWorker(ctx: android.content.Context, params: WorkerParameters) : 
             .build()
         applicationContext.getSystemService(NotificationManager::class.java)
             .notify(email.hashCode(), notification)
+    }
+
+    private fun notifyConnectionError(email: String, errorMsg: String) {
+        val launchIntent = Intent(applicationContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pi = PendingIntent.getActivity(
+            applicationContext, ("conn:$email").hashCode(), launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(applicationContext, JobAlertApp.CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("JobAlert — Error de conexión")
+            .setContentText("No se pudo conectar con $email: $errorMsg")
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        applicationContext.getSystemService(NotificationManager::class.java)
+            .notify(("conn:$email").hashCode(), notification)
     }
 }

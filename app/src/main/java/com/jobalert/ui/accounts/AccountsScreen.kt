@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
@@ -276,15 +277,37 @@ private fun AccountCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (account.authType != "PASSWORD") {
-                val isInvalid = account.needsReauth
-                Icon(
-                    imageVector = if (isInvalid) Icons.Default.Warning else Icons.Default.CheckCircle,
-                    contentDescription = if (isInvalid) "Token inválido, requiere re-autorización" else "Token válido",
-                    tint = if (isInvalid) MaterialTheme.colorScheme.error else LocalSuccessColor.current,
-                    modifier = Modifier.size(18.dp).padding(end = 4.dp)
-                )
-                Spacer(Modifier.width(4.dp))
+            when {
+                account.needsReauth -> {
+                    // OAuth credential rejected — user must re-authorize
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Token inválido, requiere re-autorización",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                account.lastSyncError != null -> {
+                    // Connection/protocol error — re-authorizing won't help
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = "No se pudo conectar: ${account.lastSyncError}",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                account.authType != "PASSWORD" -> {
+                    // OAuth and healthy
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Token válido",
+                        tint = LocalSuccessColor.current,
+                        modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(account.email, style = MaterialTheme.typography.titleSmall)

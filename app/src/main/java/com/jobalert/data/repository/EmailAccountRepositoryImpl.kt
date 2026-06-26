@@ -43,4 +43,7 @@ class EmailAccountRepositoryImpl(
 
     override suspend fun setNeedsReauth(id: Long, value: Boolean) =
         dao.setNeedsReauth(id, value)
+
+    override suspend fun setLastSyncError(id: Long, error: String?) =
+        dao.setLastSyncError(id, error)
 }

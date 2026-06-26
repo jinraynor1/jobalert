@@ -29,4 +29,7 @@ interface EmailAccountDao {
 
     @Query("UPDATE email_accounts SET needsReauth = :value WHERE id = :id")
     suspend fun setNeedsReauth(id: Long, value: Boolean)
+
+    @Query("UPDATE email_accounts SET lastSyncError = :error WHERE id = :id")
+    suspend fun setLastSyncError(id: Long, error: String?)
 }

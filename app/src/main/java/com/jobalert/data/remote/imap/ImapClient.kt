@@ -19,7 +19,8 @@ data class FetchResult(
     val messages: List<NotificationData>,
     val newLastSeenUid: Long,
     val uidValidity: Long,
-    val error: String? = null
+    val error: String? = null,
+    val authFailed: Boolean = false   // true ONLY on credential rejection (re-auth fixes it)
 )
 
 object ImapClient {
@@ -74,7 +75,7 @@ object ImapClient {
                 FetchResult(results, maxUid, currentUidValidity)
             } catch (e: javax.mail.AuthenticationFailedException) {
                 Log.e(TAG, "[${account.email}] Authentication failed: ${e.message}")
-                FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, "Credenciales incorrectas")
+                FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, "Credenciales incorrectas", authFailed = true)
             } catch (e: MessagingException) {
                 Log.e(TAG, "[${account.email}] IMAP error: ${e.message}")
                 FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, e.message)

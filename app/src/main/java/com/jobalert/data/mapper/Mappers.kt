@@ -66,7 +66,8 @@ fun EmailAccountEntity.toDomain(): EmailAccount = EmailAccount(
     uidValidity = uidValidity,
     authType = authType,
     oauthConfig = oauthConfig,
-    needsReauth = needsReauth
+    needsReauth = needsReauth,
+    lastSyncError = lastSyncError
 )
 
 fun EmailAccount.toEntity(): EmailAccountEntity = EmailAccountEntity(
@@ -80,5 +81,6 @@ fun EmailAccount.toEntity(): EmailAccountEntity = EmailAccountEntity(
     uidValidity = uidValidity,
     authType = authType,
     oauthConfig = oauthConfig,
-    needsReauth = needsReauth
+    needsReauth = needsReauth,
+    lastSyncError = lastSyncError
 )

@@ -11,7 +11,7 @@ import com.jobalert.data.local.entity.AlertEntity
 import com.jobalert.data.local.entity.EmailAccountEntity
 import com.jobalert.data.local.entity.RuleEntity
 
-@Database(entities = [AlertEntity::class, RuleEntity::class, EmailAccountEntity::class], version = 8, exportSchema = true)
+@Database(entities = [AlertEntity::class, RuleEntity::class, EmailAccountEntity::class], version = 9, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun alertDao(): AlertDao
@@ -90,10 +90,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE email_accounts ADD COLUMN lastSyncError TEXT")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(context, AppDatabase::class.java, "jobalert.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .build()
                     .also { INSTANCE = it }
             }

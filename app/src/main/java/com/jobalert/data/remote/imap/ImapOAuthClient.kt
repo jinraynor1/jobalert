@@ -61,7 +61,7 @@ internal object ImapOAuthClient {
         try {
             // Greeting
             if (!readLine().startsWith("* OK")) {
-                return FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, "Bad greeting")
+                return FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, "Saludo IMAP inválido")
             }
 
             // XOAUTH2 payload: "user=<email>\x01auth=Bearer <token>\x01\x01" base64-encoded.
@@ -93,7 +93,7 @@ internal object ImapOAuthClient {
             }
 
             if (!authOk) {
-                return FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, "Credenciales incorrectas")
+                return FetchResult(emptyList(), account.lastSeenUid, account.uidValidity, "Credenciales incorrectas", authFailed = true)
             }
             Log.i(TAG, "[${account.email}] XOAUTH2 autenticado OK")
 
