@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import com.jobalert.ui.theme.softCardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -97,7 +98,7 @@ fun PermissionsScreen() {
         if (hasOverlayPermission && hasBatteryExemption) {
             Spacer(Modifier.height(8.dp))
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
             ) {
                 Text(
                     text = "Todo listo. JobAlert revisará tus cuentas de correo por IMAP.",
@@ -134,7 +135,7 @@ private fun PermissionRow(
     granted: Boolean,
     onGrant: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import com.jobalert.ui.theme.softCardColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -169,7 +170,7 @@ private fun SettingsScreenContent(
         )
 
         val isMuted = muteUntil > System.currentTimeMillis()
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Silenciar alertas", style = MaterialTheme.typography.titleSmall)
                 Text(
@@ -209,7 +210,7 @@ private fun SettingsScreenContent(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Intervalo de revisión de correo", style = MaterialTheme.typography.titleSmall)
                 Text(
@@ -250,7 +251,8 @@ private fun SettingsScreenContent(
         if (soundEnabled) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onRingtonePickerLaunch
+                onClick = onRingtonePickerLaunch,
+                colors = softCardColors()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Tono de la alarma", style = MaterialTheme.typography.titleSmall)
@@ -266,7 +268,7 @@ private fun SettingsScreenContent(
             onCheckedChange = onVibrationEnabledChange
         )
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -305,7 +307,7 @@ private fun SettingsScreenContent(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     "Longitud del fragmento de correo",
@@ -344,7 +346,7 @@ private fun SettingsScreenContent(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Intervalo mínimo entre alertas", style = MaterialTheme.typography.titleSmall)
                 Text(
@@ -389,7 +391,7 @@ private fun ToggleCard(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = softCardColors()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
