@@ -17,6 +17,28 @@ class HistoryViewModel(private val repository: AlertRepository) : ViewModel() {
         viewModelScope.launch { repository.acknowledge(id) }
     }
 
+    fun addTestAlert() {
+        viewModelScope.launch {
+            repository.insert(
+                Alert(
+                    timestamp = System.currentTimeMillis(),
+                    sender = "prueba@jobalert.local",
+                    subject = "Alerta de prueba",
+                    snippet = "Esta alerta se generó manualmente desde el historial.",
+                    ruleName = "Prueba"
+                )
+            )
+        }
+    }
+
+    fun unacknowledge(id: Long) {
+        viewModelScope.launch { repository.unacknowledge(id) }
+    }
+
+    fun acknowledgeAll() {
+        viewModelScope.launch { repository.acknowledgeAll() }
+    }
+
     fun deleteAlert(id: Long) {
         viewModelScope.launch { repository.deleteById(id) }
     }

@@ -15,6 +15,12 @@ interface AlertDao {
     @Query("UPDATE alerts SET acknowledged = 1 WHERE id = :id")
     suspend fun acknowledge(id: Long)
 
+    @Query("UPDATE alerts SET acknowledged = 0 WHERE id = :id")
+    suspend fun unacknowledge(id: Long)
+
+    @Query("UPDATE alerts SET acknowledged = 1 WHERE acknowledged = 0")
+    suspend fun acknowledgeAll()
+
     @Query("DELETE FROM alerts WHERE id = :id")
     suspend fun deleteById(id: Long)
 

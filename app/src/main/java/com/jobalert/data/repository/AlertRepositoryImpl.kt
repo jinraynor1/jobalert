@@ -19,6 +19,10 @@ class AlertRepositoryImpl(private val dao: AlertDao) : AlertRepository {
 
     override suspend fun acknowledge(id: Long) = dao.acknowledge(id)
 
+    override suspend fun acknowledgeAll() = dao.acknowledgeAll()
+
+    override suspend fun unacknowledge(id: Long) = dao.unacknowledge(id)
+
     override suspend fun deleteById(id: Long) = dao.deleteById(id)
 
     override suspend fun deleteAll() = dao.deleteAll()

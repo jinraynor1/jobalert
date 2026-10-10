@@ -8,6 +8,8 @@ interface AlertRepository {
     val unacknowledgedCount: Flow<Int>
     suspend fun insert(alert: Alert): Long
     suspend fun acknowledge(id: Long)
+    suspend fun acknowledgeAll()
+    suspend fun unacknowledge(id: Long)
     suspend fun deleteById(id: Long)
     suspend fun deleteAll()
 }
