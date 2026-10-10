@@ -31,6 +31,8 @@ import com.jobalert.ui.overlay.OverlayManager
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +63,10 @@ class JobAlertApp : Application() {
         createNotificationChannel()
         schedulePolling()
         appScope.launch {
-            alertRepository.unacknowledgedCount.collect { count -> updatePendingBadge(count) }
+            alertRepository.unacknowledgedCount.collect { count ->
+                lastPendingCount = count
+                updatePendingBadge(count)
+            }
         }
     }
 
@@ -79,6 +84,20 @@ class JobAlertApp : Application() {
             }
         )
     }
+
+    @Volatile private var lastPendingCount = 0
+
+    /** HyperOS/MIUI clears the icon badge when the app is opened; re-posting restores it on exit. */
+    fun republishPendingBadge() {
+        republishJob?.cancel()
+        republishJob = appScope.launch {
+            getSystemService(NotificationManager::class.java).cancel(BADGE_NOTIFICATION_ID)
+            delay(1000)
+            updatePendingBadge(lastPendingCount)
+        }
+    }
+
+    private var republishJob: Job? = null
 
     private fun updatePendingBadge(count: Int) {
         val nm = getSystemService(NotificationManager::class.java)
@@ -99,7 +118,6 @@ class JobAlertApp : Application() {
             .setContentText(text)
             .setNumber(count)
             .setContentIntent(pi)
-            .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
         nm.notify(BADGE_NOTIFICATION_ID, notification)

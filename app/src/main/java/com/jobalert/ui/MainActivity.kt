@@ -21,4 +21,9 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        (applicationContext as JobAlertApp).republishPendingBadge()
+    }
 }
